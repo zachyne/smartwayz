@@ -13,25 +13,241 @@ http://localhost:8000/api/
 | Endpoint | Method | Description |
 |----------|--------|-------------|
 | `/api/` | GET | List all available endpoints |
-| `/api/citizens/` | GET, POST | List/Create citizens |
+| **Authentication** |
+| `/api/citizens/` | POST | **Signup** - Register new citizen |
+| `/api/authorities/` | POST | **Signup** - Register new authority |
+| `/api/auth/login/citizen/` | POST | **Login** - Citizen login |
+| `/api/auth/login/authority/` | POST | **Login** - Authority login |
+| `/api/auth/logout/` | POST | **Logout** - Invalidate refresh token |
+| `/api/auth/refresh/` | POST | **Refresh Token** - Get new access token |
+| **Citizens** |
+| `/api/citizens/` | GET | List all citizens |
 | `/api/citizens/{id}/` | GET, PUT, PATCH, DELETE | Retrieve/Update/Delete citizen |
-| `/api/authorities/` | GET, POST | List/Create authorities |
+| **Authorities** |
+| `/api/authorities/` | GET | List all authorities |
 | `/api/authorities/{id}/` | GET, PUT, PATCH, DELETE | Retrieve/Update/Delete authority |
+| **Categories** |
 | `/api/categories/` | GET | List all categories |
 | `/api/categories/{id}/` | GET | Retrieve specific category |
 | `/api/categories/{id}/subcategories/` | GET | Get subcategories for a category |
 | `/api/subcategories/` | GET | List all subcategories |
 | `/api/subcategories/{id}/` | GET | Retrieve specific subcategory |
 | `/api/subcategories/by_category/?category={id}` | GET | Filter subcategories by category |
+| **Reports** |
 | `/api/reports/` | GET, POST | List/Create reports |
-| `/api/reports/{id}/` | GET, PUT, PATCH, DELETE | Retrieve/Update/Delete report |
+| `/api/reports/{id}/` | GET | Retrieve specific report |
 | `/api/reports/stats/` | GET | Get report statistics |
+
+---
+
+## 0. Authentication & Authorization
+
+### 0.1 Signup (Register Citizen)
+
+**Endpoint:** `POST /api/citizens/`
+
+**Request Body:**
+```json
+{
+  "name": "John Doe",
+  "email": "john@example.com",
+  "password": "securepass123",
+  "confirm_password": "securepass123"
+}
+```
+
+**Response (201 Created):**
+```json
+{
+  "success": true,
+  "message": "Citizen registered successfully",
+  "data": {
+    "id": 1,
+    "name": "John Doe",
+    "email": "john@example.com"
+  }
+}
+```
+
+**cURL Example:**
+```bash
+curl -X POST http://localhost:8000/api/citizens/ \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "John Doe",
+    "email": "john@example.com",
+    "password": "securepass123",
+    "confirm_password": "securepass123"
+  }'
+```
+
+### 0.2 Login (Citizen)
+
+**Endpoint:** `POST /api/auth/login/citizen/`
+
+**Request Body:**
+```json
+{
+  "email": "john@example.com",
+  "password": "securepass123"
+}
+```
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "message": "Login successful",
+  "data": {
+    "user": {
+      "id": 1,
+      "name": "John Doe",
+      "email": "john@example.com",
+      "user_type": "citizen"
+    },
+    "tokens": {
+      "access": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+      "refresh": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+    }
+  }
+}
+```
+
+**cURL Example:**
+```bash
+curl -X POST http://localhost:8000/api/auth/login/citizen/ \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "john@example.com",
+    "password": "securepass123"
+  }'
+```
+
+### 0.3 Login (Authority)
+
+**Endpoint:** `POST /api/auth/login/authority/`
+
+**Request Body:**
+```json
+{
+  "email": "traffic@city.gov",
+  "password": "securepass123"
+}
+```
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "message": "Login successful",
+  "data": {
+    "user": {
+      "id": 1,
+      "authority_name": "City Traffic Department",
+      "email": "traffic@city.gov",
+      "user_type": "authority"
+    },
+    "tokens": {
+      "access": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+      "refresh": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+    }
+  }
+}
+```
+
+**cURL Example:**
+```bash
+curl -X POST http://localhost:8000/api/auth/login/authority/ \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "traffic@city.gov",
+    "password": "securepass123"
+  }'
+```
+
+### 0.4 Refresh Access Token
+
+**Endpoint:** `POST /api/auth/refresh/`
+
+**Request Body:**
+```json
+{
+  "refresh": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+}
+```
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "data": {
+    "access": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+  }
+}
+```
+
+**cURL Example:**
+```bash
+curl -X POST http://localhost:8000/api/auth/refresh/ \
+  -H "Content-Type: application/json" \
+  -d '{
+    "refresh": "your_refresh_token_here"
+  }'
+```
+
+### 0.5 Logout
+
+**Endpoint:** `POST /api/auth/logout/`
+
+**Headers:**
+```
+Authorization: Bearer <access_token>
+```
+
+**Request Body:**
+```json
+{
+  "refresh": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+}
+```
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "message": "Logout successful"
+}
+```
+
+**cURL Example:**
+```bash
+curl -X POST http://localhost:8000/api/auth/logout/ \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer your_access_token" \
+  -d '{
+    "refresh": "your_refresh_token_here"
+  }'
+```
+
+### 0.6 Using Authentication in Requests
+
+After logging in, include the access token in the Authorization header for protected endpoints:
+
+```bash
+curl http://localhost:8000/api/reports/ \
+  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+```
+
+**Token Information:**
+- **Access Token:** Valid for 1 hour
+- **Refresh Token:** Valid for 7 days
+- Use refresh token to get a new access token when it expires
 
 ---
 
 ## 1. Citizen Endpoints
 
-### 1.1 Create Citizen
+### 1.1 Create Citizen (Signup)
 
 **Endpoint:** `POST /api/citizens/`
 
