@@ -20,6 +20,9 @@
     # Stage 2: Production stage
     FROM python:3.11-slim
 
+    # Install netcat for database health check and postgresql-client for database management
+    RUN apt-get update && apt-get install -y netcat-traditional postgresql-client && rm -rf /var/lib/apt/lists/*
+
     RUN useradd -m -r appuser && \
         mkdir /app && \
         chown -R appuser /app
@@ -33,13 +36,20 @@
     #copy application code
     COPY --chown=appuser:appuser . .
 
+    # Copy and set permissions for entrypoint
+    COPY --chown=appuser:appuser entrypoint.sh /app/entrypoint.sh
+    RUN chmod +x /app/entrypoint.sh
+
     # Set environment variables to optimize Python
     ENV PYTHONDONTWRITEBYTECODE=1
     ENV PYTHONUNBUFFERED=1 
-
+    
     USER appuser
 
     EXPOSE 8000
+
+    # Use entrypoint script
+    ENTRYPOINT ["/app/entrypoint.sh"]
 
     # Start the application using Gunicorn
     CMD ["gunicorn", "--bind", "0.0.0.0:8000", "--workers", "4", "--threads", "2", "smartwayz_backend.wsgi:application"]
