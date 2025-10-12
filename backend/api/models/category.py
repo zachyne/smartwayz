@@ -9,3 +9,8 @@ class Category(models.Model):
     
     class Meta:
         db_table = "categories"
+        verbose_name = "Category"
+        verbose_name_plural = "Categories"
+    
+    def __str__(self):
+        return self.report_type

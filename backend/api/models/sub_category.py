@@ -65,6 +65,10 @@ class SubCategory(models.Model):
         choices=SubCategoryType.choices
     )
     
-    
     class Meta:
         db_table = "sub_categories"
+        verbose_name = "Sub Category"
+        verbose_name_plural = "Sub Categories"
+    
+    def __str__(self):
+        return f"{self.get_sub_category_display()} ({self.report_type.report_type})"
