@@ -69,7 +69,11 @@ const MapView = () => {
       });
 
       L.marker([marker.lat, marker.lng], { icon: markerIcon })
-        .bindPopup(`<b>Status:</b> ${marker.status}`)
+        .bindPopup(`
+        <div className="text-white text-xs font-medium p-2">
+          <b>Issue Title:</b> ${marker.issueTitle} <br />
+          <b>Status:</b> ${marker.status}
+        </div>`)
         .addTo(map.current);
     });
 
