@@ -670,10 +670,29 @@ curl http://localhost:8000/api/subcategories/by_category/?category=1
 
 **Endpoint:** `POST /api/reports/`
 
-**Request Body:**
+**Request Body (Infrastructure - sub_category optional):**
 ```json
 {
-  "report_type": 1
+  "citizen": 1,
+  "title": "Broken sidewalk on Main St",
+  "report_type": 2,
+  "sub_category": 3,
+  "description": "Large crack in sidewalk near intersection",
+  "latitude": 14.5995,
+  "longitude": 120.9842
+}
+```
+
+**Request Body (Hazard - sub_category REQUIRED):**
+```json
+{
+  "citizen": 1,
+  "title": "Flooding on Highway 1",
+  "report_type": 1,
+  "sub_category": 1,
+  "description": "Severe flooding blocking the road",
+  "latitude": 14.5995,
+  "longitude": 120.9842
 }
 ```
 
@@ -681,28 +700,111 @@ curl http://localhost:8000/api/subcategories/by_category/?category=1
 ```json
 {
   "success": true,
-  "message": "Report created successfully",
+  "message": "Report created successfully. Your report has been submitted.",
   "data": {
     "id": 1,
+    "citizen": 1,
+    "citizen_name": "John Doe",
+    "citizen_email": "john@example.com",
     "report_type": 1,
-    "category_name": "Hazard"
+    "category_name": "Hazard",
+    "sub_category": 1,
+    "sub_category_name": "Flooding/Water Overflow",
+    "title": "Flooding on Highway 1",
+    "latitude": "14.599500",
+    "longitude": "120.984200",
+    "description": "Severe flooding blocking the road",
+    "created_at": "2025-10-18T07:30:00Z"
   }
 }
 ```
 
-**cURL Example:**
+**cURL Example (Hazard with sub_category):**
 ```bash
 curl -X POST http://localhost:8000/api/reports/ \
   -H "Content-Type: application/json" \
-  -d '{"report_type": 1}'
+  -d '{
+    "citizen": 1,
+    "title": "Flooding on Highway 1",
+    "report_type": 1,
+    "sub_category": 1,
+    "description": "Severe flooding blocking the road",
+    "latitude": 14.5995,
+    "longitude": 120.9842
+  }'
 ```
 
-### 5.2 List All Reports
+**cURL Example (Infrastructure without sub_category):**
+```bash
+curl -X POST http://localhost:8000/api/reports/ \
+  -H "Content-Type: application/json" \
+  -d '{
+    "citizen": 1,
+    "title": "Broken sidewalk",
+    "report_type": 2,
+    "description": "Large crack in sidewalk",
+    "latitude": 14.5995,
+    "longitude": 120.9842
+  }'
+```
+
+### 5.2 Validation Errors for Sub Category
+
+**Error: Missing sub_category for Hazard report**
+
+**Request:**
+```json
+{
+  "citizen": 1,
+  "title": "Flooding on Highway 1",
+  "report_type": 1,
+  "description": "Severe flooding",
+  "latitude": 14.5995,
+  "longitude": 120.9842
+}
+```
+
+**Response (400 Bad Request):**
+```json
+{
+  "sub_category": [
+    "Sub category is required for Hazard reports."
+  ]
+}
+```
+
+**Error: Wrong sub_category for category**
+
+**Request (Using Infrastructure sub_category for Hazard report):**
+```json
+{
+  "citizen": 1,
+  "title": "Flooding on Highway 1",
+  "report_type": 1,
+  "sub_category": 3,
+  "description": "Severe flooding",
+  "latitude": 14.5995,
+  "longitude": 120.9842
+}
+```
+
+**Response (400 Bad Request):**
+```json
+{
+  "sub_category": [
+    "Sub category must belong to Hazard category."
+  ]
+}
+```
+
+### 5.3 List All Reports
 
 **Endpoint:** `GET /api/reports/`
 
 **Query Parameters:**
+- `citizen_id` (optional): Filter by citizen ID
 - `category` (optional): Filter by category ID
+- `sub_category` (optional): Filter by sub_category ID
 
 **Response (200 OK):**
 ```json
@@ -713,13 +815,33 @@ curl -X POST http://localhost:8000/api/reports/ \
   "results": [
     {
       "id": 1,
+      "citizen": 1,
+      "citizen_name": "John Doe",
+      "citizen_email": "john@example.com",
       "report_type": 1,
-      "category_name": "Hazard"
+      "category_name": "Hazard",
+      "sub_category": 1,
+      "sub_category_name": "Flooding/Water Overflow",
+      "title": "Flooding on Highway 1",
+      "latitude": "14.599500",
+      "longitude": "120.984200",
+      "description": "Severe flooding blocking the road",
+      "created_at": "2025-10-18T07:30:00Z"
     },
     {
       "id": 2,
+      "citizen": 1,
+      "citizen_name": "John Doe",
+      "citizen_email": "john@example.com",
       "report_type": 2,
-      "category_name": "Infrastructure"
+      "category_name": "Infrastructure",
+      "sub_category": null,
+      "sub_category_name": null,
+      "title": "Broken sidewalk",
+      "latitude": "14.599500",
+      "longitude": "120.984200",
+      "description": "Large crack in sidewalk",
+      "created_at": "2025-10-18T07:25:00Z"
     }
   ]
 }
@@ -730,7 +852,17 @@ curl -X POST http://localhost:8000/api/reports/ \
 curl http://localhost:8000/api/reports/
 ```
 
-### 5.3 Get Report Statistics
+**cURL Example (Filter by category):**
+```bash
+curl http://localhost:8000/api/reports/?category=1
+```
+
+**cURL Example (Filter by sub_category):**
+```bash
+curl http://localhost:8000/api/reports/?sub_category=1
+```
+
+### 5.4 Get Report Statistics
 
 **Endpoint:** `GET /api/reports/stats/`
 
@@ -756,39 +888,27 @@ curl http://localhost:8000/api/reports/
 curl http://localhost:8000/api/reports/stats/
 ```
 
-### 5.4 Update Report
+### 5.5 Update Report (Citizens CANNOT update)
 
 **Endpoint:** `PUT /api/reports/{id}/` or `PATCH /api/reports/{id}/`
 
-**Request Body:**
+**Response (403 Forbidden):**
 ```json
 {
-  "report_type": 2
+  "success": false,
+  "message": "Citizens cannot update reports. Reports are read-only once submitted."
 }
 ```
 
-**Response (200 OK):**
-```json
-{
-  "success": true,
-  "message": "Report updated successfully",
-  "data": {
-    "id": 1,
-    "report_type": 2,
-    "category_name": "Infrastructure"
-  }
-}
-```
-
-### 5.5 Delete Report
+### 5.6 Delete Report (Citizens CANNOT delete)
 
 **Endpoint:** `DELETE /api/reports/{id}/`
 
-**Response (200 OK):**
+**Response (403 Forbidden):**
 ```json
 {
-  "success": true,
-  "message": "Report deleted successfully"
+  "success": false,
+  "message": "Citizens cannot delete reports. Please contact authorities if you need to remove a report."
 }
 ```
 
@@ -931,39 +1051,187 @@ if (pm.response.code === 201) {
    curl http://localhost:8000/api/
    ```
 
-2. **Test Categories (Read-only)**
+2. **Test Categories and SubCategories**
    ```bash
+   # Get all categories
    curl http://localhost:8000/api/categories/
-   curl http://localhost:8000/api/subcategories/
+   
+   # Get Hazard subcategories (category_id=1)
+   curl http://localhost:8000/api/subcategories/?category=1
+   
+   # Get Infrastructure subcategories (category_id=2)
+   curl http://localhost:8000/api/subcategories/?category=2
    ```
 
 3. **Create Citizen**
    ```bash
    curl -X POST http://localhost:8000/api/citizens/ \
      -H "Content-Type: application/json" \
-     -d '{"name": "Test User", "email": "test@example.com", "password": "password123"}'
+     -d '{
+       "name": "Test User",
+       "email": "test@example.com",
+       "password": "password123",
+       "confirm_password": "password123"
+     }'
+   # Save the returned citizen ID
    ```
 
-4. **Create Authority**
-   ```bash
-   curl -X POST http://localhost:8000/api/authorities/ \
-     -H "Content-Type: application/json" \
-     -d '{"authority_name": "Test Authority", "email": "authority@example.com", "password": "password123"}'
-   ```
-
-5. **Create Report**
+4. **Test Report Creation - Hazard Category**
+   
+   **✅ Valid: Hazard with sub_category**
    ```bash
    curl -X POST http://localhost:8000/api/reports/ \
      -H "Content-Type: application/json" \
-     -d '{"report_type": 1}'
+     -d '{
+       "citizen": 1,
+       "title": "Flooding on Main Street",
+       "report_type": 1,
+       "sub_category": 1,
+       "description": "Severe flooding blocking the road",
+       "latitude": 14.5995,
+       "longitude": 120.9842
+     }'
+   ```
+   
+   **❌ Invalid: Hazard without sub_category (should fail)**
+   ```bash
+   curl -X POST http://localhost:8000/api/reports/ \
+     -H "Content-Type: application/json" \
+     -d '{
+       "citizen": 1,
+       "title": "Flooding on Main Street",
+       "report_type": 1,
+       "description": "Severe flooding",
+       "latitude": 14.5995,
+       "longitude": 120.9842
+     }'
+   # Expected: 400 Bad Request - "Sub category is required for Hazard reports."
+   ```
+   
+   **❌ Invalid: Hazard with wrong sub_category (should fail)**
+   ```bash
+   curl -X POST http://localhost:8000/api/reports/ \
+     -H "Content-Type: application/json" \
+     -d '{
+       "citizen": 1,
+       "title": "Flooding on Main Street",
+       "report_type": 1,
+       "sub_category": 9,
+       "description": "Severe flooding",
+       "latitude": 14.5995,
+       "longitude": 120.9842
+     }'
+   # Expected: 400 Bad Request - "Sub category must belong to Hazard category."
+   # (sub_category 9 is ROAD_DAMAGE which belongs to Infrastructure)
    ```
 
-6. **Get Statistics**
+5. **Test Report Creation - Infrastructure Category**
+   
+   **✅ Valid: Infrastructure without sub_category**
+   ```bash
+   curl -X POST http://localhost:8000/api/reports/ \
+     -H "Content-Type: application/json" \
+     -d '{
+       "citizen": 1,
+       "title": "Broken sidewalk",
+       "report_type": 2,
+       "description": "Large crack in sidewalk",
+       "latitude": 14.5995,
+       "longitude": 120.9842
+     }'
+   ```
+   
+   **✅ Valid: Infrastructure with sub_category (optional)**
+   ```bash
+   curl -X POST http://localhost:8000/api/reports/ \
+     -H "Content-Type: application/json" \
+     -d '{
+       "citizen": 1,
+       "title": "Broken sidewalk on Main St",
+       "report_type": 2,
+       "sub_category": 11,
+       "description": "Large crack in sidewalk near intersection",
+       "latitude": 14.5995,
+       "longitude": 120.9842
+     }'
+   ```
+
+6. **Filter Reports**
+   ```bash
+   # Get all reports
+   curl http://localhost:8000/api/reports/
+   
+   # Filter by Hazard category
+   curl http://localhost:8000/api/reports/?category=1
+   
+   # Filter by specific sub_category (e.g., Flooding)
+   curl http://localhost:8000/api/reports/?sub_category=1
+   
+   # Filter by citizen
+   curl http://localhost:8000/api/reports/?citizen_id=1
+   ```
+
+7. **Get Statistics**
    ```bash
    curl http://localhost:8000/api/reports/stats/
    curl http://localhost:8000/api/citizens/count/
    curl http://localhost:8000/api/authorities/count/
    ```
+
+### Frontend Integration Guide
+
+For your frontend application, follow this workflow:
+
+1. **Load Categories on Page Load**
+   ```javascript
+   // GET /api/categories/
+   // Display: "Hazard" and "Infrastructure" options
+   ```
+
+2. **When User Selects Category**
+   ```javascript
+   // If category is "Hazard" (id=1):
+   //   - Make sub_category field REQUIRED
+   //   - GET /api/subcategories/?category=1
+   //   - Show dropdown with Hazard sub_categories
+   
+   // If category is "Infrastructure" (id=2):
+   //   - Make sub_category field OPTIONAL
+   //   - GET /api/subcategories/?category=2
+   //   - Show dropdown with Infrastructure sub_categories (or allow empty)
+   ```
+
+3. **Submit Report**
+   ```javascript
+   // POST /api/reports/
+   // Include sub_category in payload if selected
+   // Handle validation errors (400 Bad Request)
+   ```
+
+### Sub Category IDs Reference
+
+**Hazard Sub Categories (category_id=1):**
+- 1: Flooding/Water Overflow
+- 2: Landslide/Soil Erosion
+- 3: Fire Hazard
+- 4: Electrical Hazard
+- 5: Fallen Trees/Debris Blocking Road
+- 6: Road accident
+- 7: Blocked Drainage/Clogged Gutter
+- 8: Earthquake Damage
+- 9: Sinkhole
+- 10: Public Health Hazard
+- 11: Other Hazard (specify)
+
+**Infrastructure Sub Categories (category_id=2):**
+- 12: Road damage/Potholes
+- 13: Streetlights/Electrical Issues
+- 14: Sidewalks/Pedestrian Paths
+- 15: Building/Structural Concerns
+- 16: Bridge/Overpass Issues
+- 17: Structural Collapses/Weak infrastructure
+- 18: Safety and Security Concerns
+- 19: Other (specify)
 
 ---
 

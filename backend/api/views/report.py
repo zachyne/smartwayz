@@ -21,7 +21,7 @@ class ReportViewSet(viewsets.ModelViewSet):
     Authorities can view all reports.
     """
     
-    queryset = Report.objects.select_related('report_type', 'citizen').all()
+    queryset = Report.objects.select_related('report_type', 'citizen', 'sub_category').all()
     serializer_class = ReportSerializer
     permission_classes = [AllowAny]  # Will add proper auth later
     
@@ -41,6 +41,11 @@ class ReportViewSet(viewsets.ModelViewSet):
         category_id = self.request.query_params.get('category', None)
         if category_id:
             queryset = queryset.filter(report_type_id=category_id)
+        
+        # Filter by sub_category if provided
+        sub_category_id = self.request.query_params.get('sub_category', None)
+        if sub_category_id:
+            queryset = queryset.filter(sub_category_id=sub_category_id)
         
         return queryset.order_by('-created_at')
     
