@@ -135,8 +135,6 @@ const MyReports = () => {
             >
               <option>Last Report first</option>
               <option>Oldest first</option>
-              <option>Most liked</option>
-              <option>Most commented</option>
             </select>
           </div>
         </div>
