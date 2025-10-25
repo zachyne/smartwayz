@@ -8,27 +8,20 @@ import { reportAPI } from "../../services/api";
 const steps = ["Issue Details", "Location", "Evidence"];
 
 const initialFormData = {
-  // Step 1: Issue Details
   issueTitle: "",
   reportType: "",
   categoryId: null,
   subcategory: "",
   subcategoryId: null,
-  category: "", // Display name for backward compatibility
+  category: "",
   otherCategory: "",
   description: "",
-  
-  // Step 2: Location
   location: "",
   latitude: null,
   longitude: null,
   landmark: "",
-  
-  // Step 3: Evidence
   images: [],
   contactInfo: "",
-  
-  // Validation
   errors: {}
 };
 
@@ -40,7 +33,6 @@ const ReportForm = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState(null);
 
-  // Validate current step before proceeding
   const validateStep = useCallback((currentStep) => {
     const newErrors = {};
     
@@ -54,7 +46,6 @@ const ReportForm = () => {
       if (!formData.subcategory) {
         newErrors.category = 'Please select a category';
       }
-      // If "Other" is selected, require specification
       if ((formData.category?.includes("Other") || formData.category?.includes("specify")) && !formData.otherCategory?.trim()) {
         newErrors.otherCategory = 'Please specify the category';
       }
@@ -86,7 +77,7 @@ const ReportForm = () => {
       [field]: value,
       errors: {
         ...prev.errors,
-        [field]: undefined // Clear error when user types
+        [field]: undefined
       }
     }));
   }, []);
@@ -100,10 +91,8 @@ const ReportForm = () => {
     setSubmitError(null);
 
     try {
-      // TODO: Get actual citizen ID from auth context/localStorage
-      const citizenId = localStorage.getItem('citizen_id') || 1; // Default to 1 for testing
+      const citizenId = localStorage.getItem('citizen_id') || 1;
 
-      // Prepare the report data according to the API schema
       const reportData = {
         citizen: citizenId,
         title: formData.issueTitle,
@@ -114,21 +103,14 @@ const ReportForm = () => {
         longitude: formData.longitude,
       };
 
-      // Submit the report
       const response = await reportAPI.create(reportData);
-
-      // TODO: Handle image upload separately if needed
-      // The backend might need a separate endpoint for file uploads
 
       console.log('Report submitted successfully:', response);
       
-      // Reset form and navigate to success page or reports list
       setFormData(initialFormData);
       setStep(1);
       
-      // Show success message or navigate
       alert('Report submitted successfully!');
-      // navigate('/my-reports'); // Uncomment when route exists
       
     } catch (error) {
       console.error('Error submitting report:', error);
@@ -136,7 +118,6 @@ const ReportForm = () => {
       let errorMessage = 'Failed to submit report. Please try again.';
       
       if (error.response?.data) {
-        // Handle validation errors from the backend
         const backendErrors = error.response.data;
         if (typeof backendErrors === 'object') {
           errorMessage = Object.entries(backendErrors)
@@ -153,7 +134,6 @@ const ReportForm = () => {
     }
   }, [formData, validateStep]);
   
-  // Update next/submit button disabled state based on form validation
   useEffect(() => {
     let isValid = false;
     
@@ -162,14 +142,12 @@ const ReportForm = () => {
                 formData.reportType !== '' && 
                 formData.subcategory !== '';
       
-      // If "Other" is selected, also require specification
       if ((formData.category?.includes("Other") || formData.category?.includes("specify"))) {
         isValid = isValid && formData.otherCategory?.trim() !== '';
       }
     } else if (step === 2) {
       isValid = formData.latitude !== null && formData.longitude !== null;
     } else if (step === 3) {
-      // For the final step (submit), require at least one photo
       isValid = formData.images && formData.images.length > 0;
     }
     
@@ -177,16 +155,16 @@ const ReportForm = () => {
   }, [formData, step]);
 
   return (
-    <div className="w-full max-w-3xl mx-auto bg-[#0e1030] text-white rounded-3xl p-10 shadow-lg">
+    <div className="w-full max-w-3xl mx-auto bg-[#0e1030] text-white rounded-xl sm:rounded-2xl lg:rounded-3xl p-4 sm:p-6 lg:p-10 shadow-lg">
       {/* Stepper */}
-      <div className="flex items-center justify-between mb-10">
+      <div className="flex items-center justify-between mb-6 sm:mb-8 lg:mb-10">
         {steps.map((label, index) => {
           const stepNumber = index + 1;
           const active = step === stepNumber;
           return (
             <div key={label} className="flex flex-col items-center flex-1">
               <div
-                className={`w-10 h-10 flex items-center justify-center rounded-full border-2 ${
+                className={`w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center rounded-full border-2 text-xs sm:text-base ${
                   active
                     ? "border-[#2f57ff] bg-[#2f57ff] text-white shadow-[0_0_10px_#2f57ff]"
                     : "border-gray-500 text-gray-400"
@@ -195,7 +173,7 @@ const ReportForm = () => {
                 {stepNumber}
               </div>
               <span
-                className={`text-xs mt-2 ${
+                className={`text-[10px] sm:text-xs mt-1 sm:mt-2 text-center ${
                   active ? "text-white" : "text-gray-400"
                 }`}
               >
@@ -228,18 +206,18 @@ const ReportForm = () => {
 
       {/* Submit Error Message */}
       {submitError && (
-        <div className="mt-6 bg-red-500/10 border border-red-500 rounded-md p-3 text-sm text-red-400">
+        <div className="mt-4 sm:mt-6 bg-red-500/10 border border-red-500 rounded-md p-2 sm:p-3 text-xs sm:text-sm text-red-400">
           {submitError}
         </div>
       )}
 
       {/* Navigation Buttons */}
-      <div className="flex justify-between mt-10">
+      <div className="flex justify-between mt-6 sm:mt-8 lg:mt-10">
         {step > 1 ? (
           <button
             onClick={prevStep}
             disabled={isSubmitting}
-            className="text-sm text-gray-300 hover:text-white flex items-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="text-xs sm:text-sm text-gray-300 hover:text-white flex items-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             ← Previous
           </button>
@@ -250,7 +228,7 @@ const ReportForm = () => {
           <button
             onClick={nextStep}
             disabled={isNextDisabled}
-            className={`text-sm flex items-center gap-1 ${
+            className={`text-xs sm:text-sm flex items-center gap-1 ${
               isNextDisabled 
                 ? 'text-gray-500 cursor-not-allowed' 
                 : 'text-gray-300 hover:text-white'
@@ -261,7 +239,7 @@ const ReportForm = () => {
         ) : (
           <button 
             onClick={handleSubmit}
-            className={`text-sm font-semibold px-4 py-2 rounded-md ${
+            className={`text-xs sm:text-sm font-semibold px-3 sm:px-4 py-1.5 sm:py-2 rounded-md ${
               isNextDisabled || isSubmitting
                 ? 'bg-gray-500 cursor-not-allowed' 
                 : 'bg-green-500 hover:bg-green-600'

@@ -7,7 +7,6 @@ const Step1Issue = ({ formData, onInputChange }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Fetch categories on component mount
   useEffect(() => {
     let isMounted = true;
     const abortController = new AbortController();
@@ -22,7 +21,6 @@ const Step1Issue = ({ formData, onInputChange }) => {
           setError(null);
         }
       } catch (err) {
-        // Don't show error if request was aborted
         if (err.name === 'AbortError' || err.name === 'CanceledError') {
           return;
         }
@@ -39,14 +37,12 @@ const Step1Issue = ({ formData, onInputChange }) => {
 
     fetchCategories();
 
-    // Cleanup function to prevent state updates on unmounted component
     return () => {
       isMounted = false;
       abortController.abort();
     };
   }, []);
 
-  // Fetch subcategories when reportType changes
   useEffect(() => {
     let isMounted = true;
     const abortController = new AbortController();
@@ -60,7 +56,6 @@ const Step1Issue = ({ formData, onInputChange }) => {
       }
 
       try {
-        // Find the category ID based on report_type name
         const category = categories.find(cat => cat.report_type === formData.reportType);
         if (category) {
           const data = await subCategoryAPI.getByCategory(category.id);
@@ -69,7 +64,6 @@ const Step1Issue = ({ formData, onInputChange }) => {
           }
         }
       } catch (err) {
-        // Don't show error if request was aborted
         if (err.name === 'AbortError' || err.name === 'CanceledError') {
           return;
         }
@@ -84,7 +78,6 @@ const Step1Issue = ({ formData, onInputChange }) => {
       fetchSubcategories();
     }
 
-    // Cleanup function
     return () => {
       isMounted = false;
       abortController.abort();
@@ -92,10 +85,10 @@ const Step1Issue = ({ formData, onInputChange }) => {
   }, [formData.reportType, categories]);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Issue Title */}
       <div>
-        <label className="block text-sm mb-1">
+        <label className="block text-xs sm:text-sm mb-1">
           Issue Title <span className="text-red-500">*</span>
         </label>
         <input
@@ -108,7 +101,7 @@ const Step1Issue = ({ formData, onInputChange }) => {
             formData.errors?.issueTitle
               ? "border-red-500"
               : "border-gray-600"
-          } rounded-md p-2 text-sm text-gray-300 focus:outline-none focus:border-[#2f57ff]`}
+          } rounded-md p-2 text-xs sm:text-sm text-gray-300 focus:outline-none focus:border-[#2f57ff]`}
         />
         {formData.errors?.issueTitle && (
           <p className="mt-1 text-xs text-red-400">
@@ -119,14 +112,14 @@ const Step1Issue = ({ formData, onInputChange }) => {
 
       {/* Error Message */}
       {error && (
-        <div className="bg-red-500/10 border border-red-500 rounded-md p-3 text-sm text-red-400">
+        <div className="bg-red-500/10 border border-red-500 rounded-md p-2 sm:p-3 text-xs sm:text-sm text-red-400">
           {error}
         </div>
       )}
 
       {/* Report Type */}
       <div>
-        <label className="block text-sm mb-1">
+        <label className="block text-xs sm:text-sm mb-1">
           Report Type <span className="text-red-500">*</span>
         </label>
         <select
@@ -135,12 +128,10 @@ const Step1Issue = ({ formData, onInputChange }) => {
           onChange={(e) => {
             const selectedType = e.target.value;
             onInputChange("reportType", selectedType);
-            // Reset category when report type changes
             onInputChange("category", "");
             onInputChange("subcategory", "");
             onInputChange("otherCategory", "");
             
-            // Store the category ID as well
             const category = categories.find(cat => cat.report_type === selectedType);
             if (category) {
               onInputChange("categoryId", category.id);
@@ -151,7 +142,7 @@ const Step1Issue = ({ formData, onInputChange }) => {
             formData.errors?.reportType
               ? "border-red-500"
               : "border-gray-600"
-          } rounded-md p-2 text-sm text-gray-300 focus:outline-none focus:border-[#2f57ff] disabled:opacity-50 disabled:cursor-not-allowed`}
+          } rounded-md p-2 text-xs sm:text-sm text-gray-300 focus:outline-none focus:border-[#2f57ff] disabled:opacity-50 disabled:cursor-not-allowed`}
         >
           <option className="text-gray-300 bg-gray-800" value="">
             {loading ? "Loading..." : "Select report type"}
@@ -174,10 +165,10 @@ const Step1Issue = ({ formData, onInputChange }) => {
         )}
       </div>
 
-      {/* Subcategory - Only show if report type is selected */}
+      {/* Subcategory */}
       {formData.reportType && (
         <div>
-          <label className="block text-sm mb-1">
+          <label className="block text-xs sm:text-sm mb-1">
             {formData.reportType === "Infrastructure" ? "Infrastructure Category" : "Hazard Category"} <span className="text-red-500">*</span>
           </label>
           <select
@@ -187,7 +178,6 @@ const Step1Issue = ({ formData, onInputChange }) => {
               const selectedValue = e.target.value;
               onInputChange("subcategory", selectedValue);
               
-              // Store the subcategory ID and display name
               const subcategory = subcategories.find(sub => sub.id === parseInt(selectedValue));
               if (subcategory) {
                 onInputChange("subcategoryId", subcategory.id);
@@ -199,7 +189,7 @@ const Step1Issue = ({ formData, onInputChange }) => {
               formData.errors?.category
                 ? "border-red-500"
                 : "border-gray-600"
-            } rounded-md p-2 text-sm text-gray-300 focus:outline-none focus:border-[#2f57ff] disabled:opacity-50 disabled:cursor-not-allowed`}
+            } rounded-md p-2 text-xs sm:text-sm text-gray-300 focus:outline-none focus:border-[#2f57ff] disabled:opacity-50 disabled:cursor-not-allowed`}
           >
             <option className="text-gray-300 bg-gray-800" value="">
               {subcategories.length === 0 ? "Loading categories..." : "Select a category"}
@@ -222,7 +212,7 @@ const Step1Issue = ({ formData, onInputChange }) => {
             </p>
           )}
 
-          {/* "Other" Text Field - Show when "Other" or "Other Hazard" is selected */}
+          {/* "Other" Text Field */}
           {(formData.category?.includes("Other") || formData.category?.includes("specify")) && (
             <div className="mt-3">
               <input
@@ -235,7 +225,7 @@ const Step1Issue = ({ formData, onInputChange }) => {
                   formData.errors?.otherCategory
                     ? "border-red-500"
                     : "border-gray-600"
-                } rounded-md p-2 text-sm text-gray-300 focus:outline-none focus:border-[#2f57ff]`}
+                } rounded-md p-2 text-xs sm:text-sm text-gray-300 focus:outline-none focus:border-[#2f57ff]`}
               />
               {formData.errors?.otherCategory && (
                 <p className="mt-1 text-xs text-red-400">
@@ -249,13 +239,13 @@ const Step1Issue = ({ formData, onInputChange }) => {
 
       {/* Detailed Description */}
       <div>
-        <label className="block text-sm mb-1">Detailed Description</label>
+        <label className="block text-xs sm:text-sm mb-1">Detailed Description</label>
         <textarea
           name="description"
           value={formData.description}
           onChange={(e) => onInputChange("description", e.target.value)}
           placeholder="Provide more details about the issue..."
-          className="w-full h-32 bg-transparent border border-gray-600 rounded-md p-2 text-sm text-gray-300 focus:outline-none focus:border-[#2f57ff]"
+          className="w-full h-24 sm:h-32 bg-transparent border border-gray-600 rounded-md p-2 text-xs sm:text-sm text-gray-300 focus:outline-none focus:border-[#2f57ff]"
           rows="3"
         />
       </div>
