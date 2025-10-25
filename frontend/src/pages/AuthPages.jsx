@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Eye, EyeOff, Mail, Lock, User, Phone, MapPin } from "lucide-react";
+import logo from "../assets/1.png";
 
 const AuthPages = () => {
   const [isLogin, setIsLogin] = useState(true);
@@ -50,13 +51,18 @@ const AuthPages = () => {
           <div className="absolute bottom-0 left-0 w-64 h-64 bg-blue-500/10 rounded-full blur-3xl"></div>
 
           <div className="relative z-10">
-            <div className="text-5xl font-extrabold text-white mb-4 tracking-tight">
-              SMARTWAYZ
-            </div>
+            <img
+              src={logo}
+              alt="Smartwayz Logo"
+              className="w-56 h-32 mb-3 object-contain"
+            />
+            {/* <div className="text-5xl font-extrabold text-white mb-4 tracking-tight">
+              SAFEWAYZ
+            </div> */}
 
             <div className="space-y-4 text-gray-300">
               <p className="text-sm leading-relaxed">
-                SMARTWAYZ is an infrastructure and hazard report management system designed to help 
+                SAFEWAYZ is an infrastructure and hazard report management system designed to help 
                 local governments and citizens monitor, report, and respond to urban issues efficiently. 
                 It also features a traffic simulation component to support data-driven decision-making 
                 for road safety and city planning.
@@ -83,9 +89,12 @@ const AuthPages = () => {
         {/* Right Side - Auth Forms */}
         <div className="w-full lg:w-1/2 p-8 lg:p-12 relative z-10">
           {/* Mobile Logo */}
-          <div className="lg:hidden mb-8 text-center">
-            <div className="text-3xl font-extrabold text-white mb-1">SMARTWAYZ</div>
-            <div className="text-emerald-400 font-semibold text-sm">LGU NAVAL</div>
+          <div className="flex flex-col lg:hidden mb-8 items-center">
+            <img
+              src={logo}
+              alt="Smartwayz Logo"
+              className="w-56 h-32 mb-3 object-contain"
+            />
           </div>
 
           {/* Tab Switcher */}

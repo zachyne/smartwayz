@@ -1,5 +1,6 @@
 import { FileText, Map, Folder, MapPin, Sliders, BarChart, Power } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
+import logo from "../assets/2.png";
 
 const Sidebar = () => {
   const navigate = useNavigate();
@@ -24,7 +25,7 @@ const Sidebar = () => {
     <div className="bg-gradient-to-b from-[#1B163C] to-[#100C27] w-64 h-screen flex flex-col justify-between font-[Kanit] text-white sticky top-0">
       <div className="flex-1 overflow-y-auto">
         {/* Logo */}
-        <div className="p-6 font-extrabold text-2xl tracking-tight">SMARTWAYZ</div>
+        <img src={logo} alt="Logo" className="w-44 h-24 mx-2 my-3" />
 
         {/* REPORT INFRASTRUCTURE ISSUE */}
         <div className="px-4 text-[0.65rem] text-gray-400 uppercase tracking-wider mt-3 mb-1">
