@@ -3,7 +3,6 @@ import { MapPin, Loader2, Map } from "lucide-react";
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
-// Fix for default marker icon in Leaflet
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
   iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
@@ -21,7 +20,6 @@ const Step2Location = ({ formData, onInputChange }) => {
   const mapInstanceRef = useRef(null);
   const markerRef = useRef(null);
 
-  // Reverse geocoding function to get address from coordinates
   const getAddressFromCoordinates = async (lat, lng) => {
     setLoadingAddress(true);
     try {
@@ -41,31 +39,24 @@ const Step2Location = ({ formData, onInputChange }) => {
     }
   };
 
-  // Initialize map when showMap becomes true
   useEffect(() => {
     if (showMap && mapRef.current && !mapInstanceRef.current) {
-      // Default to Naval, Biliran
       const defaultLat = formData.latitude || 11.5594;
       const defaultLng = formData.longitude || 124.3950;
 
-      // Create map
       const map = L.map(mapRef.current).setView([defaultLat, defaultLng], 13);
 
-      // Add OpenStreetMap tiles
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '© OpenStreetMap contributors',
         maxZoom: 19,
       }).addTo(map);
 
-      // Add marker
       const marker = L.marker([defaultLat, defaultLng], {
         draggable: true
       }).addTo(map);
 
-      // Update coordinates when marker is dragged
       marker.on('dragend', (e) => {
         const position = e.target.getLatLng();
-        // Round to 6 decimal places to fit database constraint (max_digits=9, decimal_places=6)
         const lat = parseFloat(position.lat.toFixed(6));
         const lng = parseFloat(position.lng.toFixed(6));
         onInputChange('latitude', lat);
@@ -74,10 +65,8 @@ const Step2Location = ({ formData, onInputChange }) => {
         getAddressFromCoordinates(lat, lng);
       });
 
-      // Update marker position when map is clicked
       map.on('click', (e) => {
         const { lat, lng } = e.latlng;
-        // Round to 6 decimal places to fit database constraint
         const roundedLat = parseFloat(lat.toFixed(6));
         const roundedLng = parseFloat(lng.toFixed(6));
         marker.setLatLng([roundedLat, roundedLng]);
@@ -91,7 +80,6 @@ const Step2Location = ({ formData, onInputChange }) => {
       markerRef.current = marker;
     }
 
-    // Cleanup on unmount
     return () => {
       if (mapInstanceRef.current) {
         mapInstanceRef.current.remove();
@@ -101,7 +89,6 @@ const Step2Location = ({ formData, onInputChange }) => {
     };
   }, [showMap]);
 
-  // Update marker position when coordinates change externally
   useEffect(() => {
     if (markerRef.current && formData.latitude && formData.longitude) {
       markerRef.current.setLatLng([formData.latitude, formData.longitude]);
@@ -124,16 +111,13 @@ const Step2Location = ({ formData, onInputChange }) => {
       (position) => {
         const { latitude, longitude } = position.coords;
         
-        // Round to 6 decimal places to fit database constraint (max_digits=9, decimal_places=6)
         const lat = parseFloat(latitude.toFixed(6));
         const lng = parseFloat(longitude.toFixed(6));
         
-        // Store latitude and longitude
         onInputChange('latitude', lat);
         onInputChange('longitude', lng);
         onInputChange('location', `${lat.toFixed(6)}, ${lng.toFixed(6)}`);
         
-        // Fetch address name
         getAddressFromCoordinates(lat, lng);
         
         setIsCapturing(false);
@@ -165,28 +149,30 @@ const Step2Location = ({ formData, onInputChange }) => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       <div>
-        <label className="block text-sm mb-1">
+        <label className="block text-xs sm:text-sm mb-1">
           Location <span className="text-red-500">*</span>
         </label>
         
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-2 gap-2 sm:gap-3">
           <button 
             type="button"
             onClick={captureLocation}
             disabled={isCapturing}
-            className="bg-[#3b3bff] text-white text-sm font-semibold py-2 rounded-md flex items-center justify-center gap-2 hover:bg-[#4d4dff] transition disabled:opacity-50 disabled:cursor-not-allowed"
+            className="bg-[#3b3bff] text-white text-xs sm:text-sm font-semibold py-2 rounded-md flex items-center justify-center gap-1 sm:gap-2 hover:bg-[#4d4dff] transition disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isCapturing ? (
               <>
                 <Loader2 size={14} className="animate-spin" />
-                CAPTURING...
+                <span className="hidden sm:inline">CAPTURING...</span>
+                <span className="sm:hidden">...</span>
               </>
             ) : (
               <>
                 <MapPin size={14} />
-                AUTO DETECT
+                <span className="hidden sm:inline">AUTO DETECT</span>
+                <span className="sm:hidden">DETECT</span>
               </>
             )}
           </button>
@@ -194,10 +180,10 @@ const Step2Location = ({ formData, onInputChange }) => {
           <button 
             type="button"
             onClick={() => setShowMap(!showMap)}
-            className="bg-gray-700 text-white text-sm font-semibold py-2 rounded-md flex items-center justify-center gap-2 hover:bg-gray-600 transition"
+            className="bg-gray-700 text-white text-xs sm:text-sm font-semibold py-2 rounded-md flex items-center justify-center gap-1 sm:gap-2 hover:bg-gray-600 transition"
           >
             <Map size={14} />
-            {showMap ? 'HIDE MAP' : 'PICK ON MAP'}
+            {showMap ? 'HIDE MAP' : <span><span className="hidden sm:inline">PICK ON</span> MAP</span>}
           </button>
         </div>
         
@@ -208,7 +194,7 @@ const Step2Location = ({ formData, onInputChange }) => {
         {formData.latitude && formData.longitude && (
           <div className="mt-2 space-y-1">
             <p className="text-xs text-green-400">
-              ✓ Coordinates: {formData.latitude.toFixed(6)}, {formData.longitude.toFixed(6)}
+              ✓ {formData.latitude.toFixed(6)}, {formData.longitude.toFixed(6)}
             </p>
             {loadingAddress && (
               <p className="text-xs text-gray-400 flex items-center gap-1">
@@ -217,7 +203,7 @@ const Step2Location = ({ formData, onInputChange }) => {
               </p>
             )}
             {addressName && !loadingAddress && (
-              <p className="text-xs text-gray-300">
+              <p className="text-xs text-gray-300 break-words">
                 📍 {addressName}
               </p>
             )}
@@ -234,11 +220,11 @@ const Step2Location = ({ formData, onInputChange }) => {
         <div className="border border-gray-600 rounded-md overflow-hidden">
           <div 
             ref={mapRef} 
-            className="w-full h-80"
+            className="w-full h-64 sm:h-80"
             style={{ zIndex: 1 }}
           />
-          <div className="bg-gray-800 p-3 text-xs text-gray-400">
-            <p>💡 <strong>Tip:</strong> Click anywhere on the map or drag the marker to set your location</p>
+          <div className="bg-gray-800 p-2 sm:p-3 text-xs text-gray-400">
+            <p>💡 <strong>Tip:</strong> Click on the map or drag the marker</p>
           </div>
         </div>
       )}
