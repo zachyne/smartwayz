@@ -59,8 +59,9 @@ class Report(models.Model):
         """Override save to call clean validation"""
         self.full_clean()
 
+        # Set default status to 'pending' if not provided
         if not self.pk and not self.status_id:
-            self.status = Status.objects.get(Status='pending')
+            self.status = Status.objects.get(code='pending')
 
         super().save(*args, **kwargs)
 
