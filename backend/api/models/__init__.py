@@ -4,5 +4,13 @@ from api.models.sub_category import SubCategory
 from api.models.authority import Authority
 from api.models.citizen import Citizen
 from api.models.report import Report
+from api.models.status import Status
 
-__all__ = ['Category', 'SubCategory', 'Authority', 'Citizen', 'Report']
+__all__ = [
+    'Category',
+    'SubCategory',
+    'Authority',
+    'Citizen',
+    'Report',
+    'Status'
+    ]

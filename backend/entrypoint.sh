@@ -55,6 +55,10 @@ unset PGPASSWORD
 echo "Running migrations..."
 python manage.py migrate --noinput
 
+# Seed Status table
+echo "Seeding Status table..."
+python manage.py seed_status
+
 # Load initial data if needed
 if [ -f "load_data.py" ]; then
     echo "Loading initial data..."
