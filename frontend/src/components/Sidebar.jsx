@@ -1,12 +1,28 @@
 import { FileText, Map, Folder, MapPin, Sliders, BarChart, Power, Menu, X } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { useState } from "react";
+import { useState, useContext } from "react";
+import { useAuth } from "../pages/AuthPages";
 import logo from "../assets/2.png";
 
 const Sidebar = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const { logout, user } = useAuth();
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+
+  const handleLogout = async () => {
+    try {
+      setIsLoggingOut(true);
+      await logout();
+      navigate('/auth');
+    } catch (error) {
+      console.error('Logout error:', error);
+    } finally {
+      setIsLoggingOut(false);
+      setIsMobileMenuOpen(false);
+    }
+  };
 
   const navItems = [
     { label: "New Report", icon: <FileText size={16} />, path: "/new-report" },
@@ -125,14 +141,33 @@ const Sidebar = () => {
         {/* USER INFO - Fixed at bottom */}
         <div className="p-4 border-t border-[#2D2570]/40">
           <div className="bg-[#1C153A] flex items-center gap-2 p-2 rounded-md mb-2 border border-[#2D2570]/40">
-            <div className="w-8 h-8 rounded-full bg-gray-400" />
-            <div>
-              <div className="text-sm font-semibold">Cyrine</div>
-              <div className="text-xs text-gray-400">Cutie Pie</div>
+            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center text-white font-bold text-sm">
+              {user?.name ? user.name.charAt(0).toUpperCase() : user?.authority_name ? user.authority_name.charAt(0).toUpperCase() : 'U'}
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="text-sm font-semibold truncate">
+                {user?.name || user?.authority_name || 'User'}
+              </div>
+              <div className="text-xs text-gray-400 capitalize truncate">
+                {user?.user_type || 'citizen'}
+              </div>
             </div>
           </div>
-          <button className="w-full bg-gradient-to-r from-[#B02147] to-[#E13B63] hover:opacity-90 text-sm rounded-md py-1.5 flex items-center justify-center gap-2 font-medium transition-all">
-            <Power size={14} /> Sign Out
+          <button 
+            onClick={handleLogout}
+            disabled={isLoggingOut}
+            className="w-full bg-gradient-to-r from-[#B02147] to-[#E13B63] hover:opacity-90 text-sm rounded-md py-1.5 flex items-center justify-center gap-2 font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isLoggingOut ? (
+              <>
+                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                Signing out...
+              </>
+            ) : (
+              <>
+                <Power size={14} /> Sign Out
+              </>
+            )}
           </button>
         </div>
       </div>

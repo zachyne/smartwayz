@@ -11,6 +11,7 @@ class Category(models.Model):
         db_table = "categories"
         verbose_name = "Category"
         verbose_name_plural = "Categories"
+        ordering = ['report_type']
     
     def __str__(self):
         return self.report_type
