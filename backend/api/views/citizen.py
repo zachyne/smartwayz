@@ -1,6 +1,7 @@
 from rest_framework import viewsets, status
 from rest_framework.response import Response
 from rest_framework.decorators import action
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from api.models import Citizen
 from api.serializers import CitizenSerializer
 
@@ -20,6 +21,15 @@ class CitizenViewSet(viewsets.ModelViewSet):
     
     queryset = Citizen.objects.all()
     serializer_class = CitizenSerializer
+    
+    def get_permissions(self):
+        """
+        Allow anyone to create (register) a citizen.
+        Require authentication for other operations.
+        """
+        if self.action == 'create':
+            return [AllowAny()]
+        return [IsAuthenticated()]
     
     def get_queryset(self):
         """

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { MapPin, Loader2, Map } from "lucide-react";
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+import { reverseGeocode } from '../../services/geocoding';
 
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
@@ -23,17 +24,14 @@ const Step2Location = ({ formData, onInputChange }) => {
   const getAddressFromCoordinates = async (lat, lng) => {
     setLoadingAddress(true);
     try {
-      const response = await fetch(
-        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`
-      );
-      const data = await response.json();
-      
-      if (data.display_name) {
-        setAddressName(data.display_name);
-        onInputChange('locationAddress', data.display_name);
-      }
+      const address = await reverseGeocode(lat, lng);
+      setAddressName(address);
+      onInputChange('locationAddress', address);
     } catch (error) {
       console.error('Error fetching address:', error);
+      const fallbackAddress = `Location: ${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+      setAddressName(fallbackAddress);
+      onInputChange('locationAddress', fallbackAddress);
     } finally {
       setLoadingAddress(false);
     }

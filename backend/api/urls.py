@@ -5,7 +5,8 @@ from api.views import (
     AuthorityViewSet,
     CategoryViewSet,
     SubCategoryViewSet,
-    ReportViewSet
+    ReportViewSet,
+    reverse_geocode
 )
 from api.views.auth import (
     login_citizen,
@@ -30,4 +31,7 @@ urlpatterns = [
     path('auth/login/authority/', login_authority, name='login-authority'),
     path('auth/refresh/', refresh_token, name='refresh-token'),
     path('auth/logout/', logout, name='logout'),
+    
+    # Geocoding endpoint
+    path('geocoding/reverse/', reverse_geocode, name='reverse-geocode'),
 ]
