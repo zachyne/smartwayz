@@ -1,6 +1,7 @@
 from rest_framework import viewsets, status
 from rest_framework.response import Response
 from rest_framework.decorators import action
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from api.models import Authority
 from api.serializers import AuthoritySerializer
 
@@ -20,6 +21,15 @@ class AuthorityViewSet(viewsets.ModelViewSet):
     
     queryset = Authority.objects.all()
     serializer_class = AuthoritySerializer
+    
+    def get_permissions(self):
+        """
+        Allow anyone to create (register) an authority.
+        Require authentication for other operations.
+        """
+        if self.action == 'create':
+            return [AllowAny()]
+        return [IsAuthenticated()]
     
     def get_queryset(self):
         """
