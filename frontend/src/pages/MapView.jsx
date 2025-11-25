@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Filter, X } from "lucide-react";
 import PageHeader from "../components/PageHeader";
+import { reportAPI } from "../services/api";
 
 const MapLegend = () => {
   const legendItems = [
@@ -28,17 +29,40 @@ const MapView = () => {
   const [showFilters, setShowFilters] = useState(false);
   const [statusFilter, setStatusFilter] = useState("All Reports");
   const [categoryFilter, setCategoryFilter] = useState("All Categories");
+  const [reports, setReports] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const markers = [
-    { lng: 124.4025, lat: 11.5601, color: "#000000", status: "Pending Review", issueTitle: "Pothole on Main St" },
-    { lng: 124.3908, lat: 11.5502, color: "#22c55e", status: "Approved", issueTitle: "Broken Traffic Light" },
-    { lng: 124.3775, lat: 11.5438, color: "#eab308", status: "In Progress", issueTitle: "Damaged Signage" },
-    { lng: 124.4145, lat: 11.5745, color: "#ef4444", status: "Rejected", issueTitle: "Road Debris" },
-    { lng: 124.3998, lat: 11.5522, color: "#000000", status: "Pending Review", issueTitle: "Missing Manhole Cover" },
-  ];
+  // Helper function to get marker color based on status
+  const getStatusColor = (status) => {
+    const colors = {
+      'Pending': '#000000',
+      'Approved': '#22c55e',
+      'In Progress': '#eab308',
+      'Rejected': '#ef4444'
+    };
+    return colors[status] || '#000000';
+  };
+
+  // Fetch reports from API
+  useEffect(() => {
+    const fetchReports = async () => {
+      try {
+        setIsLoading(true);
+        const data = await reportAPI.getAll();
+        const reportsData = data?.results || [];
+        setReports(reportsData);
+      } catch (error) {
+        console.error('Error fetching reports:', error);
+        setReports([]);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchReports();
+  }, []);
 
   useEffect(() => {
-    if (map.current) return;
+    if (map.current || isLoading || reports.length === 0) return;
 
     // Check if Leaflet is loaded
     if (!window.L) {
@@ -47,9 +71,13 @@ const MapView = () => {
     }
 
     const L = window.L;
-    
+
+    // Calculate the center point from the first report or use default
+    const centerLat = reports.length > 0 ? parseFloat(reports[0].latitude) : 11.5550;
+    const centerLng = reports.length > 0 ? parseFloat(reports[0].longitude) : 124.3950;
+
     // Initialize map
-    map.current = L.map(mapContainer.current).setView([11.5550, 124.3950], 14);
+    map.current = L.map(mapContainer.current).setView([centerLat, centerLng], 13);
 
     // Add OpenStreetMap tiles
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -57,26 +85,44 @@ const MapView = () => {
       maxZoom: 19
     }).addTo(map.current);
 
-    // Add markers
-    markers.forEach(marker => {
+    // Add markers for each report
+    reports.forEach(report => {
+      const lat = parseFloat(report.latitude);
+      const lng = parseFloat(report.longitude);
+      const color = getStatusColor(report.status_name);
+
       const markerIcon = L.divIcon({
         className: 'custom-marker',
         html: `<div style="
-          width: 20px;
-          height: 20px;
-          background-color: ${marker.color};
-          border: 2px solid white;
+          width: 24px;
+          height: 24px;
+          background-color: ${color};
+          border: 3px solid white;
           border-radius: 50%;
-          box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+          box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+          cursor: pointer;
         "></div>`,
-        iconSize: [20, 20]
+        iconSize: [24, 24]
       });
 
-      L.marker([marker.lat, marker.lng], { icon: markerIcon })
+      L.marker([lat, lng], { icon: markerIcon })
         .bindPopup(`
-        <div style="font-family: Kanit; font-size: 12px; padding: 4px;">
-          <b>Issue Title:</b> ${marker.issueTitle} <br />
-          <b>Status:</b> ${marker.status}
+        <div style="font-family: Kanit; font-size: 13px; padding: 8px; min-width: 200px;">
+          <div style="font-weight: bold; font-size: 14px; margin-bottom: 6px; color: #1f2937;">
+            ${report.title}
+          </div>
+          <div style="margin-bottom: 4px;">
+            <b>Category:</b> ${report.category_name}${report.sub_category_name ? ` / ${report.sub_category_name}` : ''}
+          </div>
+          <div style="margin-bottom: 4px;">
+            <b>Status:</b> <span style="color: ${color}; font-weight: 600;">${report.status_name}</span>
+          </div>
+          ${report.description ? `<div style="margin-top: 6px; padding-top: 6px; border-top: 1px solid #e5e7eb; color: #6b7280;">
+            ${report.description}
+          </div>` : ''}
+          <div style="margin-top: 6px; font-size: 11px; color: #9ca3af;">
+            Reported by: ${report.citizen_name}
+          </div>
         </div>`)
         .addTo(map.current);
     });
@@ -88,7 +134,7 @@ const MapView = () => {
         map.current = null;
       }
     };
-  }, []);
+  }, [reports, isLoading]);
 
   return (
     <div className="flex-1 flex flex-col h-screen font-[Kanit] pt-16 lg:pt-0">
@@ -101,6 +147,17 @@ const MapView = () => {
       {/* Map Container */}
       <div className="flex-1 bg-gray-900 relative min-h-0 z-0">
         <div ref={mapContainer} className="w-full h-full" />
+
+        {/* Loading State */}
+        {isLoading && (
+          <div className="absolute inset-0 flex items-center justify-center bg-gray-900/80 z-[2000]">
+            <div className="text-white text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
+              <p className="text-lg font-medium">Loading reports...</p>
+            </div>
+          </div>
+        )}
+
         <MapLegend />
         
         {/* Mobile Filter Button */}

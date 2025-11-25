@@ -33,22 +33,45 @@ class ReportViewSet(viewsets.ModelViewSet):
         Citizens can only see their own reports.
         """
         queryset = super().get_queryset()
-        
+
+        # Extract and validate JWT token for filtering
+        # Note: Django stores HTTP headers in META with HTTP_ prefix and uppercase
+        auth_header = self.request.META.get('HTTP_AUTHORIZATION', '')
+
+        if auth_header.startswith('Bearer '):
+            token_string = auth_header.split(' ')[1]
+            try:
+                # Decode and validate token
+                token = AccessToken(token_string)
+                user_id = token.get('user_id')
+                user_type = token.get('user_type')
+
+                # If user is a citizen, only show their reports
+                if user_type == 'citizen' and user_id:
+                    queryset = queryset.filter(citizen_id=user_id)
+                # If user is an authority, show all reports (no filter)
+                # elif user_type == 'authority':
+                #     pass  # Show all reports
+
+            except (InvalidToken, TokenError):
+                # If token is invalid, filter by citizen_id query param (fallback for testing)
+                pass
+
         # Filter by citizen_id if provided (for testing without auth)
         citizen_id = self.request.query_params.get('citizen_id', None)
         if citizen_id:
             queryset = queryset.filter(citizen_id=citizen_id)
-        
+
         # Filter by category if provided
         category_id = self.request.query_params.get('category', None)
         if category_id:
             queryset = queryset.filter(report_type_id=category_id)
-        
+
         # Filter by sub_category if provided
         sub_category_id = self.request.query_params.get('sub_category', None)
         if sub_category_id:
             queryset = queryset.filter(sub_category_id=sub_category_id)
-        
+
         return queryset.order_by('-created_at')
     
     def create(self, request, *args, **kwargs):

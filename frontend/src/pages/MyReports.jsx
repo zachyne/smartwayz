@@ -8,7 +8,13 @@ import { reportAPI } from "../services/api";
 const formatDate = (dateString) => {
   const date = new Date(dateString);
   const now = new Date();
-  const diffDays = Math.floor((now - date) / (1000 * 60 * 60 * 24));
+
+  // Reset time to midnight for accurate day comparison
+  const dateOnly = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  const nowOnly = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+  const diffDays = Math.floor((nowOnly - dateOnly) / (1000 * 60 * 60 * 24));
+
   if (diffDays === 0) return "Today";
   if (diffDays === 1) return "Yesterday";
   if (diffDays < 7) return `${diffDays} days ago`;
@@ -44,6 +50,12 @@ const MyReports = () => {
           }
         }
       );
+
+      if (!response.ok) {
+        console.error(`Geocoding request failed with status: ${response.status}`);
+        return `${parseFloat(lat).toFixed(4)}, ${parseFloat(lng).toFixed(4)}`;
+      }
+
       let data = await response.json();
 
       // Check if we got a specific establishment (school, university, etc.)
@@ -108,7 +120,8 @@ const MyReports = () => {
         for (const report of reportsData) {
           const key = `${report.latitude}_${report.longitude}`;
           if (!locations[key]) {
-            locations[key] = await getLocationName(report.latitude, report.longitude);
+            const locationName = await getLocationName(report.latitude, report.longitude);
+            locations[key] = locationName;
             // Add delay to respect OpenStreetMap's usage policy (max 1 request per second)
             await new Promise(resolve => setTimeout(resolve, 1000));
           }
