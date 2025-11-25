@@ -1,9 +1,11 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "../AuthPages"; // Import useAuth hook
 import Step1Issue from "./Step1Issue";
 import Step2Location from "./Step2Location";
 import Step3Evidence from "./Step3Evidence";
 import { reportAPI } from "../../services/api";
+import Toast from "../../components/Toast";
 
 const steps = ["Issue Details", "Location", "Evidence"];
 
@@ -27,11 +29,20 @@ const initialFormData = {
 
 const ReportForm = () => {
   const navigate = useNavigate();
+  const { user, accessToken, isAuthenticated } = useAuth(); // Get auth state
   const [step, setStep] = useState(1);
   const [formData, setFormData] = useState(initialFormData);
   const [isNextDisabled, setIsNextDisabled] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState(null);
+  const [toast, setToast] = useState(null);
+
+  // Redirect to login if not authenticated
+  useEffect(() => {
+    if (!isAuthenticated) {
+      navigate('/auth');
+    }
+  }, [isAuthenticated, navigate]);
 
   const validateStep = useCallback((currentStep) => {
     const newErrors = {};
@@ -87,14 +98,19 @@ const ReportForm = () => {
       return;
     }
 
+    // Verify authentication before submitting
+    if (!isAuthenticated || !user) {
+      setSubmitError('You must be logged in to submit a report');
+      navigate('/auth');
+      return;
+    }
+
     setIsSubmitting(true);
     setSubmitError(null);
 
     try {
-      const citizenId = localStorage.getItem('citizen_id') || 1;
-
+      // Prepare report data (backend will extract citizen from JWT token)
       const reportData = {
-        citizen: citizenId,
         title: formData.issueTitle,
         report_type: formData.categoryId,
         sub_category: formData.subcategoryId || null,
@@ -103,36 +119,63 @@ const ReportForm = () => {
         longitude: formData.longitude,
       };
 
-      const response = await reportAPI.create(reportData);
+      console.log('Submitting report:', reportData);
+      console.log('Access token:', accessToken ? 'Present ✓' : 'Missing ✗');
 
+      // Submit the report (JWT token will be automatically included)
+      const response = await reportAPI.create(reportData);
       console.log('Report submitted successfully:', response);
-      
+
+      // Show success toast
+      setToast({
+        message: 'Report submitted successfully!',
+        type: 'success'
+      });
+
+      // Reset form
       setFormData(initialFormData);
       setStep(1);
-      
-      alert('Report submitted successfully!');
+
+      // Navigate to reports page after a short delay
+      setTimeout(() => {
+        navigate('/my-reports');
+      }, 1500);
       
     } catch (error) {
       console.error('Error submitting report:', error);
       
       let errorMessage = 'Failed to submit report. Please try again.';
       
-      if (error.response?.data) {
+      // Handle 401 specifically
+      if (error.message?.includes('401') || error.message?.includes('Unauthorized')) {
+        errorMessage = 'Your session has expired. Please log in again.';
+        setToast({
+          message: errorMessage,
+          type: 'error'
+        });
+        setTimeout(() => navigate('/auth'), 2000);
+      } else if (error.response?.data) {
         const backendErrors = error.response.data;
         if (typeof backendErrors === 'object') {
           errorMessage = Object.entries(backendErrors)
             .map(([field, messages]) => `${field}: ${Array.isArray(messages) ? messages.join(', ') : messages}`)
-            .join('\n');
+            .join(', ');
         } else if (typeof backendErrors === 'string') {
           errorMessage = backendErrors;
         }
       }
-      
+
+      // Show error toast
+      setToast({
+        message: errorMessage,
+        type: 'error'
+      });
+
       setSubmitError(errorMessage);
     } finally {
       setIsSubmitting(false);
     }
-  }, [formData, validateStep]);
+  }, [formData, validateStep, isAuthenticated, user, accessToken, navigate]);
   
   useEffect(() => {
     let isValid = false;
@@ -154,9 +197,24 @@ const ReportForm = () => {
     setIsNextDisabled(!isValid);
   }, [formData, step]);
 
+  // Don't render if not authenticated
+  if (!isAuthenticated) {
+    return null;
+  }
+
   return (
-    <div className="w-full max-w-3xl mx-auto bg-[#0e1030] text-white rounded-xl sm:rounded-2xl lg:rounded-3xl p-4 sm:p-6 lg:p-10 shadow-lg">
-      {/* Stepper */}
+    <>
+      {/* Toast Notification */}
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(null)}
+        />
+      )}
+
+      <div className="w-full max-w-3xl mx-auto bg-[#0e1030] text-white rounded-xl sm:rounded-2xl lg:rounded-3xl p-4 sm:p-6 lg:p-10 shadow-lg">
+        {/* Stepper */}
       <div className="flex items-center justify-between mb-6 sm:mb-8 lg:mb-10">
         {steps.map((label, index) => {
           const stepNumber = index + 1;
@@ -206,7 +264,7 @@ const ReportForm = () => {
 
       {/* Submit Error Message */}
       {submitError && (
-        <div className="mt-4 sm:mt-6 bg-red-500/10 border border-red-500 rounded-md p-2 sm:p-3 text-xs sm:text-sm text-red-400">
+        <div className="mt-4 sm:mt-6 bg-red-500/10 border border-red-500 rounded-md p-2 sm:p-3 text-xs sm:text-sm text-red-400 whitespace-pre-line">
           {submitError}
         </div>
       )}
@@ -251,6 +309,7 @@ const ReportForm = () => {
         )}
       </div>
     </div>
+    </>
   );
 };
 

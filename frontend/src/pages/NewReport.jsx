@@ -7,7 +7,7 @@ const NewReport = () => {
     <div 
       className="flex-1 flex flex-col text-white font-[Kanit] min-h-screen lg:min-h-full pt-16 lg:pt-0" 
       style={{
-        background: 'linear-gradient(to bottom, #37366B 0%, #0A0E27 100%)'
+          background: 'linear-gradient(to bottom, #37366B 0%, #0A0E27 100%)'
       }}
     >      
       <PageHeader
