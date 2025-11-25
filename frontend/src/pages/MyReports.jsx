@@ -1,7 +1,24 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Plus, Search, Filter, X } from "lucide-react";
 import PageHeader from "../components/PageHeader";
+import { reportAPI } from "../services/api";
+
+// Helper functions
+const formatDate = (dateString) => {
+  const date = new Date(dateString);
+  const now = new Date();
+  const diffDays = Math.floor((now - date) / (1000 * 60 * 60 * 24));
+  if (diffDays === 0) return "Today";
+  if (diffDays === 1) return "Yesterday";
+  if (diffDays < 7) return `${diffDays} days ago`;
+  return date.toLocaleDateString();
+};
+
+const getStatusColor = (status) => {
+  const colors = { 'Pending': 'bg-orange-500', 'Approved': 'bg-green-500', 'In Progress': 'bg-blue-500', 'Rejected': 'bg-red-500' };
+  return colors[status] || 'bg-gray-500';
+};
 
 const MyReports = () => {
   const navigate = useNavigate();
@@ -10,51 +27,114 @@ const MyReports = () => {
   const [categoryFilter, setCategoryFilter] = useState("All categories");
   const [sortBy, setSortBy] = useState("Last Report first");
   const [showMobileFilters, setShowMobileFilters] = useState(false);
+  const [reports, setReports] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [locationNames, setLocationNames] = useState({});
 
-  // Sample reports data
-  const reports = [
-    {
-      id: 1,
-      title: "Large pothole on Main Street causing traffic hazard",
-      category: "Road Damage / Potholes ",
-      description: "Deep pothole approximately 2 feet wide near the intersection with Ayala Avenue. Causing dangerous conditions for vehicles and bicycles, traffic is slow from bottleneck.",
-      status: "PENDING",
-      statusColor: "bg-orange-500",
-      location: "Kanto Nwebe",
-      date: "2 days ago",
-      isResolved: true,
-      resolvedDate: "3 days ago"
-    },
-    {
-      id: 2,
-      title: "Street light not working on PI Garcia",
-      category: "Streetlights / Electrical Issues",
-      description: "Major high traffic at PI Garcia has been out for a week, creating safety concerns for pedestrians walking at night.",
-      status: "IN PROGRESS",
-      statusColor: "bg-blue-500",
-      location: "PI Garcia St.",
-      isResolved: false,
-      date: "3 days ago"
-    },
-    {
-      id: 3,
-      title: "Damaged storm drain on Caraycaray",
-      category: "Drainage / Flooding",
-      description: "Storm drain cover is broken and partially blocking road flow. Risk of flooding during heavy rain.",
-      status: "APPROVED",
-      statusColor: "bg-green-500",
-      location: "Caraycaray",
-      isResolved: false,
-      date: "5 days ago"
+  // Reverse geocode function using free geocoding services
+  const getLocationName = async (lat, lng) => {
+    try {
+      // Try Nominatim with better zoom levels for establishments
+      // First try zoom=19 for very specific places (buildings, POIs)
+      let response = await fetch(
+        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=19&addressdetails=1&extratags=1`,
+        {
+          headers: {
+            'User-Agent': 'Smartwayz-App/1.0' // Nominatim requires user agent
+          }
+        }
+      );
+      let data = await response.json();
+
+      // Check if we got a specific establishment (school, university, etc.)
+      if (data && data.address) {
+        const addr = data.address;
+        const name = data.name || data.namedetails?.name;
+
+        // Priority: school/university > amenity > building name > road
+        if (addr.school) {
+          return `${addr.school}, ${addr.suburb || addr.city || addr.town || ''}`.trim().replace(/,\s*$/, '');
+        }
+        if (addr.university) {
+          return `${addr.university}, ${addr.suburb || addr.city || addr.town || ''}`.trim().replace(/,\s*$/, '');
+        }
+        if (addr.amenity) {
+          return `${name || addr.amenity}, ${addr.road || addr.suburb || addr.city || ''}`.trim().replace(/,\s*$/, '');
+        }
+        if (name && name !== addr.road) {
+          // We have a named place that's not just a street
+          return `${name}, ${addr.road || addr.suburb || ''}, ${addr.city || addr.town || ''}`.trim().replace(/,\s*,/g, ',').replace(/,\s*$/, '');
+        }
+      }
+
+      // Fallback: Try LocationIQ (free tier: 5000 requests/day, no API key needed for basic usage)
+      // Or use Nominatim with different zoom for general area
+      response = await fetch(
+        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`,
+        {
+          headers: {
+            'User-Agent': 'Smartwayz-App/1.0'
+          }
+        }
+      );
+      data = await response.json();
+
+      if (data && data.display_name) {
+        // Parse and format the address nicely
+        const parts = data.display_name.split(',').map(p => p.trim());
+        // Take first 2-3 most relevant parts (avoid country and postcode)
+        const relevantParts = parts.slice(0, Math.min(3, parts.length));
+        return relevantParts.join(', ');
+      }
+
+      return 'Unknown Location';
+    } catch (error) {
+      console.error('Geocoding error:', error);
+      return `${parseFloat(lat).toFixed(4)}, ${parseFloat(lng).toFixed(4)}`;
     }
-  ];
+  };
 
-  const stats = [
-    { label: "Pending", count: 3, color: "bg-yellow-500" },
-    { label: "In Progress", count: 2, color: "bg-gray-500" },
-    { label: "Approved", count: 2, color: "bg-green-500" },
-    { label: "Rejected", count: 1, color: "bg-red-500" }
-  ];
+  // Fetch reports from API
+  useEffect(() => {
+    const fetchReports = async () => {
+      try {
+        setIsLoading(true);
+        const data = await reportAPI.getAll();
+        const reportsData = data?.results || [];
+        setReports(reportsData);
+
+        // Fetch location names for all reports
+        const locations = {};
+        for (const report of reportsData) {
+          const key = `${report.latitude}_${report.longitude}`;
+          if (!locations[key]) {
+            locations[key] = await getLocationName(report.latitude, report.longitude);
+            // Add delay to respect OpenStreetMap's usage policy (max 1 request per second)
+            await new Promise(resolve => setTimeout(resolve, 1000));
+          }
+        }
+        setLocationNames(locations);
+      } catch (error) {
+        console.error('Error fetching reports:', error);
+        setReports([]);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchReports();
+  }, []);
+
+  // Calculate stats from real data
+  const stats = React.useMemo(() => {
+    const counts = { 'Pending': 0, 'In Progress': 0, 'Approved': 0, 'Rejected': 0 };
+    reports.forEach(r => { if (counts.hasOwnProperty(r.status_name)) counts[r.status_name]++; });
+    return [
+      { label: "Pending", count: counts['Pending'], color: "bg-yellow-500" },
+      { label: "In Progress", count: counts['In Progress'], color: "bg-gray-500" },
+      { label: "Approved", count: counts['Approved'], color: "bg-green-500" },
+      { label: "Rejected", count: counts['Rejected'], color: "bg-red-500" }
+    ];
+  }, [reports]);
 
   return (
     <div className="flex-1 text-white font-[Kanit] bg-gradient-to-b from-[#37366B] to-[#0A0E27] pt-16 lg:pt-0 min-h-screen">
@@ -230,32 +310,36 @@ const MyReports = () => {
                   <h3 className="text-base sm:text-xl font-semibold text-white flex-1">
                     {report.title}
                   </h3>
-                  <span className={`${report.statusColor} text-white text-[10px] sm:text-xs font-bold px-2 sm:px-3 py-1 rounded-full uppercase whitespace-nowrap`}>
-                    {report.status}
+                  <span className={`${getStatusColor(report.status_name)} text-white text-[10px] sm:text-xs font-bold px-2 sm:px-3 py-1 rounded-full uppercase whitespace-nowrap`}>
+                    {report.status_name}
                   </span>
-                </div>        
+                </div>
                 <div className="bg-[#062B67] inline-flex items-center p-1.5 sm:p-2 rounded-md mt-2">
-                  <p className="text-[10px] sm:text-xs font-bold rounded-full uppercase text-[#3168FA]">{report.category}</p>
+                  <p className="text-[10px] sm:text-xs font-bold rounded-full uppercase text-[#3168FA]">
+                    {report.category_name}{report.sub_category_name && ` / ${report.sub_category_name}`}
+                  </p>
                 </div>
               </div>
 
-              <p className="text-gray-400 text-xs sm:text-sm mb-3 sm:mb-4 leading-relaxed">
-                {report.description}
-              </p>
+              {report.description && (
+                <p className="text-gray-400 text-xs sm:text-sm mb-3 sm:mb-4 leading-relaxed">
+                  {report.description}
+                </p>
+              )}
 
               <hr className="border-gray-700 my-3 sm:my-4" />
 
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                 <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-xs sm:text-sm text-gray-400">
                   <span className="flex items-center gap-1">
-                    📍 {report.location}
+                    📍 {locationNames[`${report.latitude}_${report.longitude}`] || `${parseFloat(report.latitude).toFixed(4)}, ${parseFloat(report.longitude).toFixed(4)}`}
                   </span>
                   <span className="flex items-center gap-1">
-                    📅 Submitted {report.date}
+                    📅 Submitted {formatDate(report.created_at)}
                   </span>
-                  {(report.isResolved || report.resolvedDate) && (
+                  {report.status_name === 'Resolved' && (
                     <span className="flex items-center gap-1">
-                      {report.isResolved ? `✅ Resolved ${report.resolvedDate}` : "Not Resolved"}
+                      ✅ Resolved
                     </span>
                   )}
                 </div>

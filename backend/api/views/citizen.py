@@ -27,7 +27,7 @@ class CitizenViewSet(viewsets.ModelViewSet):
         Allow anyone to create (register) a citizen.
         Require authentication for other operations.
         """
-        if self.action == 'create':
+        if self.action in ['create', 'options']:
             return [AllowAny()]
         return [IsAuthenticated()]
     

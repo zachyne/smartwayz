@@ -83,13 +83,12 @@ const authAPI = {
     return response.json();
   },
 
-  logout: async (accessToken, refreshToken) => {
+  logout: async (refreshToken) => {
     try {
       const response = await fetch(`${API_BASE_URL}/auth/logout/`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${accessToken}`,
         },
         body: JSON.stringify({ refresh: refreshToken }),
       });
@@ -153,17 +152,14 @@ export const AuthProvider = ({ children }) => {
 
       if (response.success) {
         const { user, tokens } = response.data;
-        
+
         setUser(user);
         setAccessToken(tokens.access);
-        
-        // Store tokens in localStorage
-        localStorage.setItem("refresh_token", tokens.refresh);
+
+        // Store user info and tokens (apiClient.setTokens handles token storage)
         localStorage.setItem("user", JSON.stringify(user));
-        
-        // Sync tokens with API client
         apiClient.setTokens(tokens.access, tokens.refresh);
-        
+
         return { success: true };
       }
     } catch (error) {
@@ -188,19 +184,17 @@ export const AuthProvider = ({ children }) => {
 
   const logout = async () => {
     const refreshToken = localStorage.getItem("refresh_token");
-    
+
     // Always clear local state first (security priority)
     setUser(null);
     setAccessToken(null);
-    localStorage.removeItem("refresh_token");
-    localStorage.removeItem("user");
-    
-    // Clear tokens from API client
+
+    // Clear tokens from API client (this also clears localStorage)
     apiClient.clearTokens();
-    
+
     // Try to notify backend (fire and forget - don't wait for response)
-    if (accessToken && refreshToken) {
-      authAPI.logout(accessToken, refreshToken).catch(() => {
+    if (refreshToken) {
+      authAPI.logout(refreshToken).catch(() => {
         // Silently ignore - logout succeeded locally
       });
     }

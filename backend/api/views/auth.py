@@ -2,8 +2,43 @@ from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny
-from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework_simplejwt.tokens import RefreshToken, AccessToken
 from api.models import Citizen, Authority
+
+
+def get_tokens_for_user(user_id, user_type, email, name=None):
+    """
+    Generate JWT tokens with custom claims for a user.
+
+    Args:
+        user_id: The ID of the user (citizen or authority)
+        user_type: 'citizen' or 'authority'
+        email: User's email
+        name: User's name (optional)
+
+    Returns:
+        dict: Dictionary containing 'access' and 'refresh' tokens
+    """
+    # Create refresh token with custom claims
+    refresh = RefreshToken()
+    refresh['user_id'] = user_id
+    refresh['user_type'] = user_type
+    refresh['email'] = email
+    if name:
+        refresh['name'] = name
+
+    # Manually create access token with the same custom claims
+    access = AccessToken()
+    access['user_id'] = user_id
+    access['user_type'] = user_type
+    access['email'] = email
+    if name:
+        access['name'] = name
+
+    return {
+        'access': str(access),
+        'refresh': str(refresh)
+    }
 
 
 @api_view(['POST'])
@@ -34,14 +69,15 @@ def login_citizen(request):
                 'success': False,
                 'message': 'Invalid email or password'
             }, status=status.HTTP_401_UNAUTHORIZED)
-        
-        # Generate JWT tokens
-        refresh = RefreshToken()
-        refresh['user_id'] = citizen.id
-        refresh['user_type'] = 'citizen'
-        refresh['email'] = citizen.email
-        refresh['name'] = citizen.name
-        
+
+        # Generate JWT tokens with custom claims
+        tokens = get_tokens_for_user(
+            user_id=citizen.id,
+            user_type='citizen',
+            email=citizen.email,
+            name=citizen.name
+        )
+
         return Response({
             'success': True,
             'message': 'Login successful',
@@ -52,10 +88,7 @@ def login_citizen(request):
                     'email': citizen.email,
                     'user_type': 'citizen'
                 },
-                'tokens': {
-                    'access': str(refresh.access_token),
-                    'refresh': str(refresh)
-                }
+                'tokens': tokens
             }
         }, status=status.HTTP_200_OK)
         
@@ -94,14 +127,15 @@ def login_authority(request):
                 'success': False,
                 'message': 'Invalid email or password'
             }, status=status.HTTP_401_UNAUTHORIZED)
-        
-        # Generate JWT tokens
-        refresh = RefreshToken()
-        refresh['user_id'] = authority.id
-        refresh['user_type'] = 'authority'
-        refresh['email'] = authority.email
-        refresh['authority_name'] = authority.authority_name
-        
+
+        # Generate JWT tokens with custom claims
+        tokens = get_tokens_for_user(
+            user_id=authority.id,
+            user_type='authority',
+            email=authority.email,
+            name=authority.authority_name
+        )
+
         return Response({
             'success': True,
             'message': 'Login successful',
@@ -112,10 +146,7 @@ def login_authority(request):
                     'email': authority.email,
                     'user_type': 'authority'
                 },
-                'tokens': {
-                    'access': str(refresh.access_token),
-                    'refresh': str(refresh)
-                }
+                'tokens': tokens
             }
         }, status=status.HTTP_200_OK)
         
@@ -144,23 +175,40 @@ def refresh_token(request):
         }, status=status.HTTP_400_BAD_REQUEST)
     
     try:
+        # Validate the refresh token
         refresh = RefreshToken(refresh_token)
-        
+
+        # Extract custom claims from refresh token
+        user_id = refresh.get('user_id')
+        user_type = refresh.get('user_type')
+        email = refresh.get('email')
+        name = refresh.get('name')
+
+        # Create a new access token with the same custom claims
+        access = AccessToken()
+        access['user_id'] = user_id
+        access['user_type'] = user_type
+        access['email'] = email
+        if name:
+            access['name'] = name
+
         return Response({
             'success': True,
             'data': {
-                'access': str(refresh.access_token)
+                'access': str(access)
             }
         }, status=status.HTTP_200_OK)
-        
+
     except Exception as e:
         return Response({
             'success': False,
-            'message': 'Invalid or expired refresh token'
+            'message': 'Invalid or expired refresh token',
+            'error': str(e)
         }, status=status.HTTP_401_UNAUTHORIZED)
 
 
 @api_view(['POST'])
+@permission_classes([AllowAny])
 def logout(request):
     """
     Logout endpoint (blacklist refresh token).

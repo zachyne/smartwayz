@@ -15,20 +15,23 @@ class ReportSerializer(serializers.ModelSerializer):
     sub_category_name = serializers.CharField(source='sub_category.get_sub_category_display', read_only=True)
     citizen_name = serializers.CharField(source='citizen.name', read_only=True)
     citizen_email = serializers.CharField(source='citizen.email', read_only=True)
-    
+    status_name = serializers.CharField(source='status.get_code_display', read_only=True)
+
     class Meta:
         model = Report
         fields = [
-            'id', 
-            'citizen', 
-            'citizen_name', 
+            'id',
+            'citizen',
+            'citizen_name',
             'citizen_email',
-            'report_type', 
+            'report_type',
             'category_name',
             'sub_category',
             'sub_category_name',
+            'status',
+            'status_name',
             'title',
-            'latitude', 
+            'latitude',
             'longitude',
             'description',
             'created_at'
