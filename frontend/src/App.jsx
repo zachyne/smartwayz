@@ -1,24 +1,26 @@
-import { useEffect } from "react";
-import { BrowserRouter, Routes, Route, Navigate, useNavigate, useLocation } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { useAuth } from "./pages/AuthPages";
 import Sidebar from "./components/Sidebar";
+import RoleBasedSidebar from "./components/RoleBasedSidebar";
 import NewReport from "./pages/NewReport";
 import MapView from "./pages/MapView";
 import MyReports from "./pages/MyReports";
 import AuthPages from "./pages/AuthPages";
+import AuthorityReports from "./pages/Authority/AuthorityReports";
+import PendingReports from "./pages/Authority/PendingReports";
+import { Outlet, useLocation } from "react-router-dom";
+import InProgressReports from "./pages/Authority/InProgressReports";
+import ApprovedReports from "./pages/Authority/ApprovedReports";
+import ResolvedReports from "./pages/Authority/ResolvedReports";
+import RejectedReports from "./pages/Authority/RejectedReports";
+import AuthorityAnalytics from "./pages/Authority/AuthorityAnalytics";
 
 // Protected Route Wrapper
 const ProtectedRoute = ({ children }) => {
   const { isAuthenticated, loading } = useAuth();
   const location = useLocation();
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-[#1B163C] via-[#2D2570] to-[#0A0E27] flex items-center justify-center">
-        <div className="text-white text-xl">Loading...</div>
-      </div>
-    );
-  }
+  if (loading) return <div className="text-white">Loading...</div>;
 
   if (!isAuthenticated) {
     return <Navigate to="/auth" state={{ from: location }} replace />;
@@ -27,62 +29,71 @@ const ProtectedRoute = ({ children }) => {
   return children;
 };
 
-// Auth Route Wrapper (redirects to dashboard if already logged in)
+// Auth Route Wrapper
 const AuthRoute = ({ children }) => {
-  const { isAuthenticated, loading } = useAuth();
+  const { isAuthenticated, loading, user } = useAuth();
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-[#1B163C] via-[#2D2570] to-[#0A0E27] flex items-center justify-center">
-        <div className="text-white text-xl">Loading...</div>
-      </div>
-    );
-  }
+  if (loading) return <div className="text-white">Loading...</div>;
 
   if (isAuthenticated) {
-    return <Navigate to="/new-report" replace />;
+    return <Navigate to={user?.type === "authority" ? "/authority/reports" : "/new-report"} replace />;
   }
 
   return children;
 };
 
+const DashboardLayout = () => (
+  <div className="flex min-h-screen bg-[#1a1535]">
+    <RoleBasedSidebar />
+    <div className="flex-1 overflow-y-auto">
+      <Outlet />
+    </div>
+  </div>
+);
+
 function App() {
   return (
     <BrowserRouter>
       <Routes>
-        {/* Auth route - redirects to /new-report if already logged in */}
-        <Route 
-          path="/auth" 
+
+        {/* Auth */}
+        <Route
+          path="/auth"
           element={
             <AuthRoute>
               <AuthPages />
             </AuthRoute>
-          } 
-        />
-        
-        {/* Protected routes with sidebar */}
-        <Route
-          path="/*"
-          element={
-            <ProtectedRoute>
-              <div className="flex min-h-screen bg-[#1a1535]">
-                <Sidebar />
-                <div className="flex-1 overflow-y-auto">
-                  <Routes>
-                    <Route path="/" element={<Navigate to="/new-report" replace />} />
-                    <Route path="/new-report" element={<NewReport />} />
-                    <Route path="/map-view" element={<MapView />} />
-                    <Route path="/my-reports" element={<MyReports />} />
-                    <Route path="/traffic-map" element={<div className="flex-1 bg-gray-900 text-white p-8">Traffic Map Page</div>} />
-                    <Route path="/scenarios" element={<div className="flex-1 bg-gray-900 text-white p-8">Scenarios Page</div>} />
-                    <Route path="/controls" element={<div className="flex-1 bg-gray-900 text-white p-8">Controls Page</div>} />
-                    <Route path="/analysis" element={<div className="flex-1 bg-gray-900 text-white p-8">Analysis Page</div>} />
-                  </Routes>
-                </div>
-              </div>
-            </ProtectedRoute>
           }
         />
+
+        {/* Protected Dashboard */}
+        <Route
+          element={
+            <ProtectedRoute>
+              <DashboardLayout />
+            </ProtectedRoute>
+          }
+        >
+          <Route index element={<Navigate to="/new-report" replace />} />
+
+          {/* Citizen Routes */}
+          <Route path="new-report" element={<NewReport />} />
+          <Route path="map-view" element={<MapView />} />
+          <Route path="my-reports" element={<MyReports />} />
+          <Route path="scenarios" element={<div className="p-8 text-white">Scenarios</div>} />
+          <Route path="controls" element={<div className="p-8 text-white">Controls</div>} />
+          <Route path="analysis" element={<div className="p-8 text-white">Analysis</div>} />
+
+          {/* Authority Routes */}
+          <Route path="authority/reports" element={<AuthorityReports />} />
+          <Route path="authority/pending" element={<PendingReports />} />
+          <Route path="authority/in-progress" element={<InProgressReports />} />
+          <Route path="authority/approved" element={<ApprovedReports />} />
+          <Route path="authority/rejected" element={<RejectedReports />} />
+          <Route path="authority/resolved" element={<ResolvedReports />} />
+          <Route path="authority/authority-analytics" element={<AuthorityAnalytics />} />
+        </Route>
+
       </Routes>
     </BrowserRouter>
   );

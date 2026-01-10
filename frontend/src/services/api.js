@@ -56,33 +56,43 @@ export const subCategoryAPI = {
 
 // Report API
 export const reportAPI = {
-  // Create a new report
   create: async (reportData) => {
     const data = await apiClient.post('/reports/', reportData);
     return data;
   },
 
-  // Get all reports
   getAll: async () => {
     const data = await apiClient.get('/reports/');
     return data;
   },
 
-  // Get single report by ID
+  getAuthorityReports: async () => {
+    const data = await apiClient.get('/reports/');
+    return data;
+  },
+
   getById: async (id) => {
     const data = await apiClient.get(`/reports/${id}/`);
     return data;
   },
 
-  // Update report
   update: async (id, reportData) => {
     const data = await apiClient.put(`/reports/${id}/`, reportData);
     return data;
   },
 
-  // Delete report
   delete: async (id) => {
     const data = await apiClient.delete(`/reports/${id}/`);
     return data;
   },
+
+  updateStatus: async (reportId, statusId) => {
+    const { data } = await apiClient.patch(`/reports/${reportId}/status/`, { status_id: statusId });
+    return data;
+  },
+  
+  getStats: async () => {
+    const { data } = await apiClient.get("/reports/stats/");
+    return data;
+  },  
 };
