@@ -41,20 +41,17 @@ class ReportViewSet(viewsets.ModelViewSet):
         if auth_header.startswith('Bearer '):
             token_string = auth_header.split(' ')[1]
             try:
-                # Decode and validate token
                 token = AccessToken(token_string)
                 user_id = token.get('user_id')
                 user_type = token.get('user_type')
 
-                # If user is a citizen, only show their reports
                 if user_type == 'citizen' and user_id:
                     queryset = queryset.filter(citizen_id=user_id)
-                # If user is an authority, show all reports (no filter)
-                # elif user_type == 'authority':
-                #     pass  # Show all reports
+
+                elif user_type == 'authority' and user_id:
+                    queryset = queryset.filter(sub_category__authority_id=user_id)
 
             except (InvalidToken, TokenError):
-                # If token is invalid, filter by citizen_id query param (fallback for testing)
                 pass
 
         # Filter by citizen_id if provided (for testing without auth)
@@ -215,4 +212,68 @@ class ReportViewSet(viewsets.ModelViewSet):
         return Response({
             'total_reports': Report.objects.count(),
             'by_category': list(stats)
+        })
+
+    @action(detail=True, methods=["patch"], url_path="status", permission_classes=[AllowAny])
+    def update_status(self, request, pk=None):
+        """
+        Allows authorities to update the status of a report.
+        """
+        report = self.get_object()
+        new_status_id = request.data.get("status_id")
+
+        if not new_status_id:
+            return Response(
+                {"success": False, "message": "status_id is required"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Validate status exists
+        try:
+            new_status = Status.objects.get(id=new_status_id)
+        except Status.DoesNotExist:
+            return Response(
+                {"success": False, "message": "Invalid status"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Optional: enforce allowed transitions
+        ALLOWED_TRANSITIONS = {
+            1: [2, 4],  # pending → approved or rejected
+            2: [3],     # approved → in_progress
+            3: [5],     # in_progress → resolved
+        }
+
+        current_status_id = report.status_id
+
+        if current_status_id in ALLOWED_TRANSITIONS:
+            if int(new_status_id) not in ALLOWED_TRANSITIONS[current_status_id]:
+                return Response(
+                    {"success": False, "message": "Invalid status transition"},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+        # Save new status
+        report.status = new_status
+        report.save(update_fields=["status"])
+
+        return Response(
+            {
+                "success": True,
+                "message": "Status updated successfully",
+                "new_status": new_status.code
+            }
+        )
+
+    @action(detail=False, methods=["get"])
+    def stats(self, request):
+        from django.db.models import Count
+
+        by_status = Report.objects.values("status__code").annotate(count=Count("id"))
+        by_category = Report.objects.values("report_type__report_type").annotate(count=Count("id"))
+
+        return Response({
+            "total_reports": Report.objects.count(),
+            "by_status": list(by_status),
+            "by_category": list(by_category),
         })

@@ -149,23 +149,27 @@ export const AuthProvider = ({ children }) => {
       const response = userType === "citizen" 
         ? await authAPI.loginCitizen(email, password)
         : await authAPI.loginAuthority(email, password);
-
+  
       if (response.success) {
         const { user, tokens } = response.data;
-
-        setUser(user);
+  
+        const enrichedUser = {
+          ...user,
+          type: userType, // <-- mark which table was used
+        };
+  
+        setUser(enrichedUser);
         setAccessToken(tokens.access);
-
-        // Store user info and tokens (apiClient.setTokens handles token storage)
-        localStorage.setItem("user", JSON.stringify(user));
+  
+        localStorage.setItem("user", JSON.stringify(enrichedUser));
         apiClient.setTokens(tokens.access, tokens.refresh);
-
+  
         return { success: true };
       }
     } catch (error) {
       return { success: false, error: error.message };
     }
-  };
+  };  
 
   const register = async (userData) => {
     try {

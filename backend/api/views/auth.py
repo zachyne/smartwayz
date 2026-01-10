@@ -95,7 +95,7 @@ def login_citizen(request):
     except Citizen.DoesNotExist:
         return Response({
             'success': False,
-            'message': 'Invalid email or password'
+            'message': 'Invalid email or password citizen exist test'
         }, status=status.HTTP_401_UNAUTHORIZED)
 
 
@@ -110,11 +110,11 @@ def login_authority(request):
     """
     email = request.data.get('email')
     password = request.data.get('password')
-    
+    print
     if not email or not password:
         return Response({
             'success': False,
-            'message': 'Email and password are required'
+            'message': 'Email and password are required email or password test'
         }, status=status.HTTP_400_BAD_REQUEST)
     
     try:
@@ -125,7 +125,7 @@ def login_authority(request):
         if not authority.check_password(password):
             return Response({
                 'success': False,
-                'message': 'Invalid email or password'
+                'message': 'Invalid email or password password ni test'
             }, status=status.HTTP_401_UNAUTHORIZED)
 
         # Generate JWT tokens with custom claims

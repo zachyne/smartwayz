@@ -1,10 +1,10 @@
 from django.db import models
 from .category import Category
-
+# from api.models import Authority  # adjust path
 
 class SubCategory(models.Model):
     class SubCategoryType(models.TextChoices):
-        # Infrastructure categories
+        
         ROAD_DAMAGE = 'ROAD_DAMAGE', 'Road damage/Potholes'
         STREETLIGHTS = 'STREETLIGHTS', 'Streetlights/Electrical Issues'
         SIDEWALKS = 'SIDEWALKS', 'Sidewalks/Pedestrian Paths'
@@ -14,7 +14,6 @@ class SubCategory(models.Model):
         SAFETY_SECURITY = 'SAFETY_SECURITY', 'Safety and Security Concerns'
         INFRA_OTHER = 'INFRA_OTHER', 'Other (specify)'
         
-        # Hazard Subcategories
         FLOODING = 'FLOODING', 'Flooding/Water Overflow'
         LANDSLIDE = 'LANDSLIDE', 'Landslide/Soil Erosion'
         FIRE_HAZARD = 'FIRE_HAZARD', 'Fire Hazard'
@@ -26,50 +25,32 @@ class SubCategory(models.Model):
         SINKHOLE = 'SINKHOLE', 'Sinkhole'
         PUBLIC_HEALTH = 'PUBLIC_HEALTH', 'Public Health Hazard'
         HAZARD_OTHER = 'HAZARD_OTHER', 'Other Hazard (specify)'
-        
-            # ✅ Mapping to know which subcategories belong to which category
-    CATEGORY_MAPPING = {
-        'Infrastructure': [
-            SubCategoryType.ROAD_DAMAGE,
-            SubCategoryType.STREETLIGHTS,
-            SubCategoryType.SIDEWALKS,
-            SubCategoryType.BUILDING,
-            SubCategoryType.BRIDGE,
-            SubCategoryType.STRUCTURAL_COLLAPSE,
-            SubCategoryType.SAFETY_SECURITY,
-            SubCategoryType.INFRA_OTHER,
-        ],
-        'Hazard': [
-            SubCategoryType.FLOODING,
-            SubCategoryType.LANDSLIDE,
-            SubCategoryType.FIRE_HAZARD,
-            SubCategoryType.ELECTRICAL_HAZARD,
-            SubCategoryType.FALLEN_TREES,
-            SubCategoryType.ROAD_ACCIDENT,
-            SubCategoryType.BLOCKED_DRAINAGE,
-            SubCategoryType.EARTHQUAKE,
-            SubCategoryType.SINKHOLE,
-            SubCategoryType.PUBLIC_HEALTH,
-            SubCategoryType.HAZARD_OTHER,
-        ],
-    }
-        
+
     report_type = models.ForeignKey(
         Category,
         on_delete=models.CASCADE,
         related_name='subcategories'
-        )
-    
+    )
+
     sub_category = models.CharField(
         max_length=64,
         choices=SubCategoryType.choices
     )
-    
+
+    authority = models.ForeignKey(
+        "api.Authority",   # 👈 string reference instead of import,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        db_constraint=False,
+        related_name="subcategories"
+    )
+
     class Meta:
         db_table = "sub_categories"
         verbose_name = "Sub Category"
         verbose_name_plural = "Sub Categories"
         ordering = ['report_type', 'sub_category']
-    
+
     def __str__(self):
         return f"{self.get_sub_category_display()} ({self.report_type.report_type})"

@@ -34,4 +34,5 @@ urlpatterns = [
     
     # Geocoding endpoint
     path('geocoding/reverse/', reverse_geocode, name='reverse-geocode'),
+    
 ]
