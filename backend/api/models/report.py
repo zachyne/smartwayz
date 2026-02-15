@@ -68,3 +68,18 @@ class Report(models.Model):
     def __str__(self):
         sub_cat_str = f" - {self.sub_category.get_sub_category_display()}" if self.sub_category else ""
         return f"Report #{self.id} - {self.report_type.report_type}{sub_cat_str} by {self.citizen.name}"
+
+
+class ReportImage(models.Model):
+    report = models.ForeignKey(Report, on_delete=models.CASCADE, related_name='images')
+    image = models.ImageField(upload_to='reports/%Y/%m/%d/')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = "report_images"
+        verbose_name = "Report Image"
+        verbose_name_plural = "Report Images"
+        ordering = ['created_at']
+
+    def __str__(self):
+        return f"ReportImage #{self.id} for Report #{self.report_id}"

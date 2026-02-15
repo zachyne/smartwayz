@@ -1,5 +1,20 @@
 from rest_framework import serializers
-from api.models import Report, Category, Citizen, SubCategory
+from api.models import Report, ReportImage, Category, SubCategory
+
+
+class ReportImageSerializer(serializers.ModelSerializer):
+    image_url = serializers.SerializerMethodField()
+
+    class Meta:
+        model = ReportImage
+        fields = ['id', 'image', 'image_url', 'created_at']
+        read_only_fields = ['id', 'image_url', 'created_at']
+
+    def get_image_url(self, obj):
+        request = self.context.get('request')
+        if request:
+            return request.build_absolute_uri(obj.image.url)
+        return obj.image.url
 
 
 class ReportSerializer(serializers.ModelSerializer):
@@ -16,6 +31,8 @@ class ReportSerializer(serializers.ModelSerializer):
     citizen_name = serializers.CharField(source='citizen.name', read_only=True)
     citizen_email = serializers.CharField(source='citizen.email', read_only=True)
     status_name = serializers.CharField(source='status.get_code_display', read_only=True)
+    images = ReportImageSerializer(many=True, read_only=True)
+    image_count = serializers.IntegerField(source='images.count', read_only=True)
 
     class Meta:
         model = Report
@@ -34,6 +51,8 @@ class ReportSerializer(serializers.ModelSerializer):
             'latitude',
             'longitude',
             'description',
+            'images',
+            'image_count',
             'created_at'
         ]
         read_only_fields = ['id', 'created_at']

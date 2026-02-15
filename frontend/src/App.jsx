@@ -1,6 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { useAuth } from "./pages/AuthPages";
-import Sidebar from "./components/Sidebar";
 import RoleBasedSidebar from "./components/RoleBasedSidebar";
 import NewReport from "./pages/NewReport";
 import MapView from "./pages/MapView";
@@ -14,6 +13,7 @@ import ApprovedReports from "./pages/Authority/ApprovedReports";
 import ResolvedReports from "./pages/Authority/ResolvedReports";
 import RejectedReports from "./pages/Authority/RejectedReports";
 import AuthorityAnalytics from "./pages/Authority/AuthorityAnalytics";
+import TrafficSimulation from "./pages/TrafficSimulation";
 
 // Protected Route Wrapper
 const ProtectedRoute = ({ children }) => {
@@ -80,9 +80,10 @@ function App() {
           <Route path="new-report" element={<NewReport />} />
           <Route path="map-view" element={<MapView />} />
           <Route path="my-reports" element={<MyReports />} />
-          <Route path="scenarios" element={<div className="p-8 text-white">Scenarios</div>} />
-          <Route path="controls" element={<div className="p-8 text-white">Controls</div>} />
-          <Route path="analysis" element={<div className="p-8 text-white">Analysis</div>} />
+          <Route path="traffic-map" element={<TrafficSimulation />} />
+          <Route path="scenarios" element={<TrafficSimulation />} />
+          <Route path="controls" element={<TrafficSimulation />} />
+          <Route path="analysis" element={<TrafficSimulation />} />
 
           {/* Authority Routes */}
           <Route path="authority/reports" element={<AuthorityReports />} />

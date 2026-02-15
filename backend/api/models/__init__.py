@@ -3,7 +3,7 @@ from api.models.category import Category
 from api.models.sub_category import SubCategory
 from api.models.authority import Authority
 from api.models.citizen import Citizen
-from api.models.report import Report
+from api.models.report import Report, ReportImage
 from api.models.status import Status
 
 __all__ = [
@@ -12,5 +12,6 @@ __all__ = [
     'Authority',
     'Citizen',
     'Report',
+    'ReportImage',
     'Status'
     ]

@@ -166,12 +166,15 @@ class ApiClient {
    */
   async request(endpoint, options = {}) {
     const url = endpoint.startsWith('http') ? endpoint : `${API_BASE_URL}${endpoint}`;
-    
+    const isFormDataBody = options.body instanceof FormData;
+
     // Prepare headers
     const headers = {
-      'Content-Type': 'application/json',
       ...options.headers,
     };
+    if (!isFormDataBody && !headers['Content-Type']) {
+      headers['Content-Type'] = 'application/json';
+    }
 
     // Define public endpoints that don't need authentication
     const publicEndpoints = [
@@ -275,7 +278,7 @@ class ApiClient {
     return this.request(endpoint, {
       ...options,
       method: 'POST',
-      body: JSON.stringify(data),
+      body: data instanceof FormData ? data : JSON.stringify(data),
     });
   }
 
@@ -283,7 +286,7 @@ class ApiClient {
     return this.request(endpoint, {
       ...options,
       method: 'PUT',
-      body: JSON.stringify(data),
+      body: data instanceof FormData ? data : JSON.stringify(data),
     });
   }
 
@@ -291,7 +294,7 @@ class ApiClient {
     return this.request(endpoint, {
       ...options,
       method: 'PATCH',
-      body: JSON.stringify(data),
+      body: data instanceof FormData ? data : JSON.stringify(data),
     });
   }
 

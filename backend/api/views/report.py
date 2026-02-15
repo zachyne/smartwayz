@@ -2,9 +2,10 @@ from rest_framework import viewsets, status
 from rest_framework.response import Response
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated, AllowAny
+from rest_framework.parsers import JSONParser, MultiPartParser, FormParser
 from rest_framework_simplejwt.tokens import AccessToken
 from rest_framework_simplejwt.exceptions import InvalidToken, TokenError
-from api.models import Report, Citizen, Status
+from api.models import Report, ReportImage, Citizen, Status
 from api.serializers import ReportSerializer
 
 
@@ -23,9 +24,10 @@ class ReportViewSet(viewsets.ModelViewSet):
     Authorities can view all reports.
     """
     
-    queryset = Report.objects.select_related('report_type', 'citizen', 'sub_category').all()
+    queryset = Report.objects.select_related('report_type', 'citizen', 'sub_category').prefetch_related('images').all()
     serializer_class = ReportSerializer
     permission_classes = [AllowAny]  # We handle auth manually in create()
+    parser_classes = [JSONParser, MultiPartParser, FormParser]
     
     def get_queryset(self):
         """
@@ -144,16 +146,31 @@ class ReportViewSet(viewsets.ModelViewSet):
                     status=status.HTTP_500_INTERNAL_SERVER_ERROR
                 )
 
+        uploaded_images = request.FILES.getlist('images')
+        if len(uploaded_images) > 5:
+            return Response(
+                {
+                    'success': False,
+                    'message': 'You can upload up to 5 images per report.'
+                },
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
         serializer = self.get_serializer(data=report_data)
         serializer.is_valid(raise_exception=True)
-        self.perform_create(serializer)
-        headers = self.get_success_headers(serializer.data)
+        report = serializer.save()
+
+        for image_file in uploaded_images:
+            ReportImage.objects.create(report=report, image=image_file)
+
+        response_serializer = self.get_serializer(report)
+        headers = self.get_success_headers(response_serializer.data)
 
         return Response(
             {
                 'success': True,
                 'message': 'Report created successfully. Your report has been submitted.',
-                'data': serializer.data
+                'data': response_serializer.data
             },
             status=status.HTTP_201_CREATED,
             headers=headers
