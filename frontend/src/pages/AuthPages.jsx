@@ -1,6 +1,7 @@
 import { useState, useEffect, createContext, useContext } from "react";
 import { Eye, EyeOff, Mail, Lock, User, AlertCircle, CheckCircle } from "lucide-react";
 import { apiClient } from "../services/apiClient";
+import logoTwo from "../assets/2.png";
 
 // ============================================
 // API Configuration
@@ -386,9 +387,11 @@ const AuthPages = () => {
           <div className="absolute bottom-0 left-0 w-64 h-64 bg-blue-500/10 rounded-full blur-3xl"></div>
 
           <div className="relative z-10">
-            <div className="text-5xl font-extrabold text-white mb-4 tracking-tight">
-              SAFEWAYZ
-            </div>
+            <img
+              src={logoTwo}
+              alt="Safewayz"
+              className="h-20 w-auto mb-4"
+            />
 
             <div className="space-y-4 text-gray-300">
               <p className="text-sm leading-relaxed">
@@ -416,7 +419,11 @@ const AuthPages = () => {
 
         <div className="w-full lg:w-1/2 p-8 lg:p-12 relative z-10">
           <div className="flex flex-col lg:hidden mb-8 items-center">
-            <div className="text-4xl font-extrabold text-white mb-2">SAFEWAYZ</div>
+            <img
+              src={logoTwo}
+              alt="Safewayz"
+              className="h-16 w-auto"
+            />
           </div>
 
           <div className="flex gap-2 bg-[#0F0C1F] p-1 rounded-xl mb-8">
