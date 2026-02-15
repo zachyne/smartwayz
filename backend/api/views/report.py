@@ -3,10 +3,13 @@ from rest_framework.response import Response
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.parsers import JSONParser, MultiPartParser, FormParser
+import logging
 from rest_framework_simplejwt.tokens import AccessToken
 from rest_framework_simplejwt.exceptions import InvalidToken, TokenError
 from api.models import Report, ReportImage, Citizen, Status
 from api.serializers import ReportSerializer
+
+logger = logging.getLogger(__name__)
 
 
 class ReportViewSet(viewsets.ModelViewSet):
@@ -158,10 +161,20 @@ class ReportViewSet(viewsets.ModelViewSet):
 
         serializer = self.get_serializer(data=report_data)
         serializer.is_valid(raise_exception=True)
-        report = serializer.save()
-
-        for image_file in uploaded_images:
-            ReportImage.objects.create(report=report, image=image_file)
+        try:
+            report = serializer.save()
+            for image_file in uploaded_images:
+                ReportImage.objects.create(report=report, image=image_file)
+        except Exception as exc:
+            logger.exception("Report creation/upload failed")
+            return Response(
+                {
+                    'success': False,
+                    'message': 'Report upload failed. Please check storage configuration.',
+                    'detail': str(exc),
+                },
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
         response_serializer = self.get_serializer(report)
         headers = self.get_success_headers(response_serializer.data)
