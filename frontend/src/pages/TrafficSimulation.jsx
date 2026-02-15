@@ -684,7 +684,7 @@ const TrafficSimulation = () => {
   return (
     <div className="flex-1 flex flex-col h-[100dvh] overflow-hidden font-[Kanit] pt-16 lg:pt-0 bg-gray-900">
       {/* Top Header Bar */}
-      <div className="bg-gradient-to-r from-[#1B163C] to-[#2E2470] border-b border-purple-500/30 px-3 sm:px-6 py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-0 z-10">
+      <div className="relative z-[1100] bg-gradient-to-r from-[#1B163C] to-[#2E2470] border-b border-purple-500/30 px-3 sm:px-6 py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-0">
         <div>
           <h1 className="text-lg sm:text-2xl font-bold text-white">Traffic Simulation</h1>
           <p className="text-purple-300 text-xs sm:text-sm">Naval, Biliran - Real Traffic Data</p>
@@ -738,7 +738,7 @@ const TrafficSimulation = () => {
       </div>
 
       {/* Main Content Area */}
-      <div className="flex-1 flex flex-col lg:flex-row min-h-0 relative overflow-hidden">
+      <div className="relative z-0 flex-1 flex flex-col lg:flex-row min-h-0 overflow-hidden">
 
         {/* Left Panel - Scenarios (Desktop) */}
         <div className="hidden lg:flex flex-col w-64 bg-gray-800 border-r border-gray-700">
@@ -780,7 +780,7 @@ const TrafficSimulation = () => {
 
         {/* Mobile Scenarios Panel */}
         {showScenarios && (
-          <div className="lg:hidden absolute top-0 left-0 right-0 bottom-0 bg-gray-800 z-20 overflow-y-auto">
+          <div className="lg:hidden absolute top-0 left-0 right-0 bottom-0 bg-gray-800 z-[1200] overflow-y-auto">
             <div className="p-4 border-b border-gray-700 flex items-center justify-between">
               <h2 className="text-white font-semibold flex items-center gap-2">
                 <Layers size={18} className="text-purple-400" />
@@ -822,11 +822,11 @@ const TrafficSimulation = () => {
         )}
 
         {/* Center - Map View */}
-        <div className="flex-1 relative min-h-[360px] lg:min-h-0">
+        <div className="relative z-0 flex-1 min-h-[360px] lg:min-h-0">
           <div ref={mapContainer} className="w-full h-full" />
 
           {/* Map Legend */}
-          <div className="hidden sm:block absolute bottom-4 left-4 bg-gray-800/90 backdrop-blur-sm rounded-lg p-3 text-white text-xs z-[1000] max-w-[220px]">
+          <div className="pointer-events-none hidden sm:block absolute bottom-4 left-4 bg-gray-800/90 backdrop-blur-sm rounded-lg p-3 text-white text-xs z-10 max-w-[220px]">
             <div className="font-semibold mb-2">Traffic Flow Intensity</div>
             {Object.entries(CONGESTION_COLORS).map(([level, color]) => (
               <div key={level} className="flex items-center gap-2 mb-1 last:mb-0">
@@ -841,7 +841,7 @@ const TrafficSimulation = () => {
           </div>
 
           {/* Current Time - Mobile */}
-          <div className="sm:hidden absolute top-3 left-3 right-3 bg-gray-800/90 backdrop-blur-sm rounded-lg px-3 py-2 text-white z-[1000]">
+          <div className="pointer-events-none sm:hidden absolute top-3 left-3 right-3 bg-gray-800/90 backdrop-blur-sm rounded-lg px-3 py-2 text-white z-10">
             <div className="flex items-center gap-2">
               <Clock size={14} className="text-purple-300" />
               <span className="font-medium text-sm">{formatHour(currentHour)}</span>
@@ -852,7 +852,7 @@ const TrafficSimulation = () => {
           </div>
 
           {/* Compact Legend - Mobile */}
-          <div className="sm:hidden absolute bottom-3 right-3 bg-gray-800/90 backdrop-blur-sm rounded-lg px-2.5 py-2 text-[10px] text-white z-[1000]">
+          <div className="pointer-events-none sm:hidden absolute bottom-3 right-3 bg-gray-800/90 backdrop-blur-sm rounded-lg px-2.5 py-2 text-[10px] text-white z-10">
             <div className="font-semibold mb-1">Flow Intensity</div>
             <div className="flex items-center gap-1.5">
               <span className="w-3 h-1 rounded" style={{ backgroundColor: CONGESTION_COLORS.free }}></span>
@@ -981,7 +981,7 @@ const TrafficSimulation = () => {
 
         {/* Mobile Controls Panel */}
         {showControls && (
-          <div className="lg:hidden absolute top-0 left-0 right-0 bottom-0 bg-gray-800 z-20 overflow-y-auto">
+          <div className="lg:hidden absolute top-0 left-0 right-0 bottom-0 bg-gray-800 z-[1200] overflow-y-auto">
             <div className="p-4 border-b border-gray-700 flex items-center justify-between">
               <h2 className="text-white font-semibold flex items-center gap-2">
                 <Settings size={18} className="text-purple-400" />
