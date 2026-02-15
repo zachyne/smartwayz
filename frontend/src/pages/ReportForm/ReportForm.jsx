@@ -109,17 +109,24 @@ const ReportForm = () => {
     setSubmitError(null);
 
     try {
-      // Prepare report data (backend will extract citizen from JWT token)
-      const reportData = {
-        title: formData.issueTitle,
-        report_type: formData.categoryId,
-        sub_category: formData.subcategoryId || null,
-        description: formData.description || null,
-        latitude: formData.latitude,
-        longitude: formData.longitude,
-      };
+      // Prepare multipart payload so evidence images are uploaded with the report
+      const reportData = new FormData();
+      reportData.append('title', formData.issueTitle || '');
+      reportData.append('report_type', String(formData.categoryId));
+      if (formData.subcategoryId) {
+        reportData.append('sub_category', String(formData.subcategoryId));
+      }
+      if (formData.description) {
+        reportData.append('description', formData.description);
+      }
+      reportData.append('latitude', String(formData.latitude));
+      reportData.append('longitude', String(formData.longitude));
 
-      console.log('Submitting report:', reportData);
+      (formData.images || []).forEach((file) => {
+        reportData.append('images', file);
+      });
+
+      console.log('Submitting report with images:', (formData.images || []).length);
       console.log('Access token:', accessToken ? 'Present ✓' : 'Missing ✗');
 
       // Submit the report (JWT token will be automatically included)

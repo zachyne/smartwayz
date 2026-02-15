@@ -1,6 +1,6 @@
-import { FileText, Map, Folder, MapPin, Sliders, BarChart, Power, Menu, X } from "lucide-react";
+import { FileText, Map, Folder, MapPin, Power, Menu, X } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { useState, useContext } from "react";
+import { useState } from "react";
 import { useAuth } from "../pages/AuthPages";
 import logo from "../assets/2.png";
 
@@ -31,10 +31,7 @@ const Sidebar = () => {
   ];
 
   const simItems = [
-    { label: "Traffic Map", icon: <MapPin size={16} />, path: "/traffic-map" },
-    { label: "Scenarios", icon: <Sliders size={16} />, path: "/scenarios" },
-    { label: "Controls", icon: <Sliders size={16} />, path: "/controls" },
-    { label: "Analysis", icon: <BarChart size={16} />, path: "/analysis" },
+    { label: "Traffic Simulation", icon: <MapPin size={16} />, path: "/traffic-map" },
   ];
 
   const isActive = (path) => location.pathname === path;

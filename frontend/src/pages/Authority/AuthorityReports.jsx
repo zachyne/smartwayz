@@ -1,6 +1,29 @@
 import { Search, Filter, Eye, Check, X, Clock, MapPin, Calendar, User } from "lucide-react";
 import { reportAPI } from "../../services/api";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
+
+const API_ROOT = (import.meta.env.VITE_API_URL || "http://localhost:8000/api").replace(/\/api\/?$/, "");
+
+const toAbsoluteUrl = (value) => {
+  if (!value || typeof value !== "string") return null;
+  if (value.startsWith("http://") || value.startsWith("https://")) return value;
+  return `${API_ROOT}${value.startsWith("/") ? "" : "/"}${value}`;
+};
+
+const extractImageUrls = (report) => {
+  const fromArray = Array.isArray(report?.images) ? report.images : [];
+  const urls = fromArray
+    .map((image) => {
+      if (typeof image === "string") return image;
+      if (!image || typeof image !== "object") return null;
+      return image.image_url || image.url || image.image || image.file || image.photo_url || null;
+    })
+    .filter(Boolean)
+    .map(toAbsoluteUrl)
+    .filter(Boolean);
+
+  return urls;
+};
 
 const AuthorityReports = () => {
   const [searchQuery, setSearchQuery] = useState("");
@@ -68,6 +91,12 @@ const AuthorityReports = () => {
   const mapReportForUI = (r) => {
     // Status is already in correct format from API ("Pending", "In Progress", etc.)
     const displayStatus = r.status_name || "Pending";
+    const imageUrls = extractImageUrls(r);
+    const imageCount = typeof r.image_count === "number"
+      ? r.image_count
+      : Array.isArray(r.images)
+        ? r.images.length
+        : imageUrls.length;
 
     return {
       id: r.id,
@@ -81,9 +110,25 @@ const AuthorityReports = () => {
       location: `${parseFloat(r.latitude).toFixed(4)}, ${parseFloat(r.longitude).toFixed(4)}`,
       submittedDate: new Date(r.created_at).toLocaleDateString(),
       submittedBy: r.citizen_name || "Unknown",
-      images: r.images?.length || 0,
+      imageUrls,
+      images: imageCount,
     };
   };
+
+  const openReportDetails = useCallback(async (report) => {
+    // Open immediately, then hydrate with full detail payload
+    setSelectedReport(report);
+
+    try {
+      const detailRes = await reportAPI.getById(report.id);
+      const raw = detailRes?.data && detailRes?.data?.id ? detailRes.data : detailRes;
+      if (raw?.id) {
+        setSelectedReport(mapReportForUI(raw));
+      }
+    } catch (err) {
+      console.error("Failed to fetch report details:", err);
+    }
+  }, []);
 
   // Function to fetch all data (reports + stats)
   const fetchAllData = async () => {
@@ -296,7 +341,13 @@ const AuthorityReports = () => {
             {reports.map((report) => (
               <div
                 key={report.id}
-                className="bg-[#1E1C3A]/60 backdrop-blur-sm rounded-xl p-4 sm:p-6 border border-gray-700/50 hover:border-purple-500/50 transition-all"
+                role="button"
+                tabIndex={0}
+                onClick={() => openReportDetails(report)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") openReportDetails(report);
+                }}
+                className="bg-[#1E1C3A]/60 backdrop-blur-sm rounded-xl p-4 sm:p-6 border border-gray-700/50 hover:border-purple-500/50 transition-all cursor-pointer"
               >
                 <div className="flex flex-col gap-4">
                   <div className="flex-1">
@@ -353,7 +404,10 @@ const AuthorityReports = () => {
                   {/* Action Buttons */}
                   <div className="flex flex-col sm:flex-row gap-2">
                     <button
-                      onClick={() => setSelectedReport(report)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        openReportDetails(report);
+                      }}
                       className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg flex items-center justify-center gap-2 text-sm font-medium transition-all"
                     >
                       <Eye size={16} />
@@ -362,14 +416,20 @@ const AuthorityReports = () => {
                     {report.status === "Pending" && (
                       <>
                         <button
-                          onClick={() => handleAction(report.id, "approve")}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleAction(report.id, "approve");
+                          }}
                           className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center justify-center gap-2 text-sm font-medium transition-all"
                         >
                           <Check size={16} />
                           Approve
                         </button>
                         <button
-                          onClick={() => handleAction(report.id, "reject")}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleAction(report.id, "reject");
+                          }}
                           className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg flex items-center justify-center gap-2 text-sm font-medium transition-all"
                         >
                           <X size={16} />
@@ -379,7 +439,10 @@ const AuthorityReports = () => {
                     )}
                     {report.status === "In Progress" && (
                       <button
-                        onClick={() => handleAction(report.id, "resolve")}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleAction(report.id, "resolve");
+                        }}
                         className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg flex items-center justify-center gap-2 text-sm font-medium transition-all"
                       >
                         <Check size={16} />
@@ -501,34 +564,22 @@ const AuthorityReports = () => {
                 {/* Image Gallery */}
                 <div>
                   <h3 className="text-sm text-gray-400 uppercase font-semibold mb-3">
-                    Attached Images ({selectedReport.images})
+                    Attached Images ({selectedReport.imageUrls?.length || 0})
                   </h3>
-                  {selectedReport.images > 0 ? (
+                  {selectedReport.imageUrls?.length > 0 ? (
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                      {Array.from({ length: selectedReport.images }).map(
-                        (_, idx) => (
+                      {selectedReport.imageUrls.map((url, idx) => (
                           <div
                             key={idx}
                             className="aspect-video bg-gradient-to-br from-gray-700 to-gray-800 rounded-lg overflow-hidden border border-gray-600 hover:border-purple-500 transition-all cursor-pointer"
                           >
                             <img
-                              src={`https://images.unsplash.com/photo-${
-                                selectedReport.id === 1
-                                  ? "1623018035113-d534a3c98e8f"
-                                  : selectedReport.id === 2
-                                  ? "1470225620780-dba8ba36b745"
-                                  : selectedReport.id === 3
-                                  ? "1583512603805-4d5b8c93f3e7"
-                                  : selectedReport.id === 4
-                                  ? "1449824913935-59a10b8d2000"
-                                  : "1558618666-fcd25c85cd64"
-                              }?w=400&h=300&fit=crop`}
+                              src={url}
                               alt={`Evidence ${idx + 1}`}
                               className="w-full h-full object-cover"
                             />
                           </div>
-                        )
-                      )}
+                        ))}
                     </div>
                   ) : (
                     <p className="text-gray-400">No images attached</p>

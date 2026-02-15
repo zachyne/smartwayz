@@ -3,6 +3,27 @@ import { Eye, CheckCircle2, MapPin, Calendar, User, Award } from "lucide-react";
 import { reportAPI } from "../../services/api";
 import ReportFilters from "../../components/ReportFilters";
 
+const API_ROOT = (import.meta.env.VITE_API_URL || "http://localhost:8000/api").replace(/\/api\/?$/, "");
+
+const toAbsoluteUrl = (value) => {
+  if (!value || typeof value !== "string") return null;
+  if (value.startsWith("http://") || value.startsWith("https://")) return value;
+  return `${API_ROOT}${value.startsWith("/") ? "" : "/"}${value}`;
+};
+
+const extractImageUrls = (report) => {
+  const fromArray = Array.isArray(report?.images) ? report.images : [];
+  return fromArray
+    .map((image) => {
+      if (typeof image === "string") return image;
+      if (!image || typeof image !== "object") return null;
+      return image.image_url || image.url || image.image || image.file || image.photo_url || null;
+    })
+    .filter(Boolean)
+    .map(toAbsoluteUrl)
+    .filter(Boolean);
+};
+
 const ResolvedReports = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("All categories");
@@ -23,6 +44,12 @@ const ResolvedReports = () => {
 
   const mapReportForUI = (r) => {
     const displayStatus = r.status_name || "Resolved";
+    const imageUrls = extractImageUrls(r);
+    const imageCount = typeof r.image_count === "number"
+      ? r.image_count
+      : Array.isArray(r.images)
+        ? r.images.length
+        : imageUrls.length;
 
     return {
       id: r.id,
@@ -36,7 +63,8 @@ const ResolvedReports = () => {
       location: `${parseFloat(r.latitude).toFixed(4)}, ${parseFloat(r.longitude).toFixed(4)}`,
       submittedDate: new Date(r.created_at).toLocaleDateString(),
       submittedBy: r.citizen_name || "Unknown",
-      images: r.images?.length || 0,
+      imageUrls,
+      images: imageCount,
     };
   };
 
@@ -269,18 +297,13 @@ const ResolvedReports = () => {
 
                 {/* Image Gallery */}
                 <div>
-                  <h3 className="text-sm text-gray-400 uppercase font-semibold mb-3">Attached Images ({selectedReport.images})</h3>
-                  {selectedReport.images > 0 ? (
+                  <h3 className="text-sm text-gray-400 uppercase font-semibold mb-3">Attached Images ({selectedReport.imageUrls?.length || 0})</h3>
+                  {selectedReport.imageUrls?.length > 0 ? (
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                      {Array.from({ length: selectedReport.images }).map((_, idx) => (
+                      {selectedReport.imageUrls.map((url, idx) => (
                         <div key={idx} className="aspect-video bg-gradient-to-br from-gray-700 to-gray-800 rounded-lg overflow-hidden border border-gray-600 hover:border-emerald-500 transition-all cursor-pointer">
                           <img
-                            src={`https://images.unsplash.com/photo-${
-                              selectedReport.id === 1 ? "1623018035113-d534a3c98e8f" :
-                              selectedReport.id === 2 ? "1470225620780-dba8ba36b745" :
-                              selectedReport.id === 3 ? "1583512603805-4d5b8c93f3e7" :
-                              "1449824913935-59a10b8d2000"
-                            }?w=400&h=300&fit=crop`}
+                            src={url}
                             alt={`Evidence ${idx + 1}`}
                             className="w-full h-full object-cover"
                           />

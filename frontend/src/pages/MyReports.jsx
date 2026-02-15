@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { Plus, Search, Filter, X } from "lucide-react";
 import PageHeader from "../components/PageHeader";
@@ -26,6 +26,32 @@ const getStatusColor = (status) => {
   return colors[status] || 'bg-gray-500';
 };
 
+const API_ROOT = (import.meta.env.VITE_API_URL || "http://localhost:8000/api").replace(/\/api\/?$/, "");
+
+const toAbsoluteUrl = (value) => {
+  if (!value || typeof value !== "string") return null;
+  if (value.startsWith("http://") || value.startsWith("https://")) return value;
+  return `${API_ROOT}${value.startsWith("/") ? "" : "/"}${value}`;
+};
+
+const extractImageUrls = (report) => {
+  const fromArray = Array.isArray(report?.images) ? report.images : [];
+  const urls = fromArray
+    .map((image) => {
+      if (typeof image === "string") return image;
+      if (!image || typeof image !== "object") return null;
+      return image.image_url || image.url || image.image || image.file || image.photo_url || null;
+    })
+    .filter(Boolean);
+
+  const fallbackSingle = report?.image_url || report?.image || report?.photo_url || report?.photo || null;
+  if (urls.length === 0 && fallbackSingle) {
+    urls.push(fallbackSingle);
+  }
+
+  return urls.map(toAbsoluteUrl).filter(Boolean);
+};
+
 const MyReports = () => {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
@@ -36,6 +62,7 @@ const MyReports = () => {
   const [reports, setReports] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [locationNames, setLocationNames] = useState({});
+  const [selectedReport, setSelectedReport] = useState(null);
 
   // Reverse geocode function using free geocoding services
   const getLocationName = async (lat, lng) => {
@@ -112,7 +139,7 @@ const MyReports = () => {
       try {
         setIsLoading(true);
         const data = await reportAPI.getAll();
-        const reportsData = data?.results || [];
+        const reportsData = data?.results || data || [];
         setReports(reportsData);
 
         // Fetch location names for all reports
@@ -148,6 +175,40 @@ const MyReports = () => {
       { label: "Rejected", count: counts['Rejected'], color: "bg-red-500" }
     ];
   }, [reports]);
+
+  const filteredReports = useMemo(() => {
+    let filtered = [...reports];
+
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      filtered = filtered.filter((report) =>
+        report.title?.toLowerCase().includes(q) ||
+        report.description?.toLowerCase().includes(q) ||
+        report.category_name?.toLowerCase().includes(q) ||
+        report.sub_category_name?.toLowerCase().includes(q)
+      );
+    }
+
+    if (statusFilter !== "All Statuses") {
+      filtered = filtered.filter((report) => report.status_name === statusFilter);
+    }
+
+    if (categoryFilter !== "All categories") {
+      filtered = filtered.filter((report) => {
+        const category = `${report.category_name || ""} ${report.sub_category_name || ""}`.toLowerCase();
+        return category.includes(categoryFilter.toLowerCase());
+      });
+    }
+
+    filtered.sort((a, b) => {
+      if (sortBy === "Oldest first") {
+        return new Date(a.created_at) - new Date(b.created_at);
+      }
+      return new Date(b.created_at) - new Date(a.created_at);
+    });
+
+    return filtered;
+  }, [reports, searchQuery, statusFilter, categoryFilter, sortBy]);
 
   return (
     <div className="flex-1 text-white font-[Kanit] bg-gradient-to-b from-[#37366B] to-[#0A0E27] pt-16 lg:pt-0 min-h-screen">
@@ -313,10 +374,17 @@ const MyReports = () => {
 
         {/* Reports List */}
         <div className="space-y-3 sm:space-y-4">
-          {reports.map((report) => (
+          {filteredReports.map((report) => {
+            return (
             <div
               key={report.id}
-              className="bg-[#1E1C3A]/60 backdrop-blur-sm rounded-lg sm:rounded-xl p-4 sm:p-6 border border-gray-700/50 hover:border-purple-500/50 transition-all"
+              role="button"
+              tabIndex={0}
+              onClick={() => setSelectedReport(report)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") setSelectedReport(report);
+              }}
+              className="bg-[#1E1C3A]/60 backdrop-blur-sm rounded-lg sm:rounded-xl p-4 sm:p-6 border border-gray-700/50 hover:border-purple-500/50 transition-all cursor-pointer"
             >
               <div className="mb-3">
                 <div className="flex items-start justify-between gap-3">
@@ -358,9 +426,63 @@ const MyReports = () => {
                 </div>
               </div>
             </div>
-          ))}
+          );
+          })}
         </div>
       </div>
+
+      {selectedReport && (
+        <div
+          className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4"
+          onClick={() => setSelectedReport(null)}
+        >
+          <div
+            className="w-full max-w-3xl max-h-[90vh] overflow-y-auto bg-[#1B1A36] border border-gray-700 rounded-xl p-4 sm:p-6"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-start justify-between gap-3 mb-4">
+              <div>
+                <h3 className="text-lg sm:text-2xl font-semibold text-white">{selectedReport.title}</h3>
+                <p className="text-xs sm:text-sm text-gray-400 mt-1">
+                  {selectedReport.category_name}{selectedReport.sub_category_name && ` / ${selectedReport.sub_category_name}`}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSelectedReport(null)}
+                className="text-gray-400 hover:text-white"
+                aria-label="Close report details"
+              >
+                <X size={22} />
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
+              {extractImageUrls(selectedReport).map((url, index) => (
+                <img
+                  key={`${selectedReport.id}-img-${index}`}
+                  src={url}
+                  alt={`Report evidence ${index + 1}`}
+                  className="w-full h-48 sm:h-56 object-cover rounded-lg border border-gray-700"
+                  loading="lazy"
+                />
+              ))}
+            </div>
+
+            {selectedReport.description && (
+              <p className="text-sm text-gray-300 mb-4">{selectedReport.description}</p>
+            )}
+
+            <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-xs sm:text-sm text-gray-400">
+              <span>📍 {locationNames[`${selectedReport.latitude}_${selectedReport.longitude}`] || `${parseFloat(selectedReport.latitude).toFixed(4)}, ${parseFloat(selectedReport.longitude).toFixed(4)}`}</span>
+              <span>📅 Submitted {formatDate(selectedReport.created_at)}</span>
+              <span className={`${getStatusColor(selectedReport.status_name)} text-white text-[10px] sm:text-xs font-bold px-2 py-1 rounded-full uppercase w-fit`}>
+                {selectedReport.status_name}
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
