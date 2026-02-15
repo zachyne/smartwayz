@@ -121,6 +121,34 @@ Expected response:
 
 Visit `http://localhost:8000/api/` in your web browser to access the Django REST Framework browsable API interface.
 
+## Supabase Media Storage
+
+To store report images in Supabase Storage instead of local `backend/media`, set these environment variables:
+
+```env
+USE_SUPABASE_STORAGE=True
+SUPABASE_ACCESS_KEY_ID=...
+SUPABASE_SECRET_ACCESS_KEY=...
+SUPABASE_BUCKET_NAME=...
+SUPABASE_S3_ENDPOINT=https://<project-ref>.supabase.co/storage/v1/s3
+SUPABASE_REGION=us-east-1
+SUPABASE_PUBLIC_MEDIA_URL=https://<project-ref>.supabase.co/storage/v1/object/public/<bucket>
+```
+
+Then rebuild and run migrations:
+
+```bash
+docker compose build django-web
+docker compose run --rm django-web python manage.py migrate
+docker compose up -d
+```
+
+To migrate existing local files from `backend/media` to Supabase:
+
+```bash
+docker compose run --rm django-web python manage.py migrate_media_to_storage
+```
+
 ## Security
 
 ### Password Security ✅
@@ -137,5 +165,4 @@ User registration requires password confirmation to prevent typos:
 For complete security documentation, see [SECURITY.md](./SECURITY.md)
 
 **Note:** This application is configured for development. Additional security measures (authentication, authorization, HTTPS) are required before production deployment.
-
 

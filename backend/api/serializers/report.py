@@ -1,4 +1,5 @@
 from rest_framework import serializers
+from django.conf import settings
 from api.models import Report, ReportImage, Category, SubCategory
 
 
@@ -11,10 +12,17 @@ class ReportImageSerializer(serializers.ModelSerializer):
         read_only_fields = ['id', 'image_url', 'created_at']
 
     def get_image_url(self, obj):
+        public_base = getattr(settings, "SUPABASE_PUBLIC_MEDIA_URL", "").rstrip("/")
+        if public_base:
+            return f"{public_base}/{obj.image.name}"
+
+        url = obj.image.url
+        if url.startswith("http://") or url.startswith("https://"):
+            return url
         request = self.context.get('request')
         if request:
-            return request.build_absolute_uri(obj.image.url)
-        return obj.image.url
+            return request.build_absolute_uri(url)
+        return url
 
 
 class ReportSerializer(serializers.ModelSerializer):

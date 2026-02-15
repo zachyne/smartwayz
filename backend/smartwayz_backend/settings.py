@@ -45,6 +45,7 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "rest_framework",
     "rest_framework_simplejwt.token_blacklist",
+    "storages",
     "corsheaders",
     "api",
 ]
@@ -127,6 +128,33 @@ USE_TZ = True
 STATIC_URL = "static/"
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
+
+# File Storage Configuration
+# Local by default; set USE_SUPABASE_STORAGE=True to store uploads on Supabase Storage (S3-compatible).
+USE_SUPABASE_STORAGE = os.environ.get("USE_SUPABASE_STORAGE", "False").lower() == "true"
+if USE_SUPABASE_STORAGE:
+    AWS_ACCESS_KEY_ID = os.environ.get("SUPABASE_ACCESS_KEY_ID", "")
+    AWS_SECRET_ACCESS_KEY = os.environ.get("SUPABASE_SECRET_ACCESS_KEY", "")
+    AWS_STORAGE_BUCKET_NAME = os.environ.get("SUPABASE_BUCKET_NAME", "")
+    AWS_S3_REGION_NAME = os.environ.get("SUPABASE_REGION", "us-east-1")
+    AWS_S3_ENDPOINT_URL = os.environ.get("SUPABASE_S3_ENDPOINT", "")
+    AWS_S3_ADDRESSING_STYLE = "path"
+    AWS_DEFAULT_ACL = None
+    AWS_QUERYSTRING_AUTH = False
+    AWS_S3_FILE_OVERWRITE = False
+
+    STORAGES = {
+        "default": {"BACKEND": "storages.backends.s3.S3Storage"},
+        "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},
+    }
+
+    # Preferred explicit public base URL:
+    # e.g. https://<project-ref>.supabase.co/storage/v1/object/public/<bucket>
+    SUPABASE_PUBLIC_MEDIA_URL = os.environ.get("SUPABASE_PUBLIC_MEDIA_URL", "").rstrip("/")
+    if SUPABASE_PUBLIC_MEDIA_URL:
+        MEDIA_URL = f"{SUPABASE_PUBLIC_MEDIA_URL}/"
+    elif AWS_S3_ENDPOINT_URL and AWS_STORAGE_BUCKET_NAME:
+        MEDIA_URL = f"{AWS_S3_ENDPOINT_URL.rstrip('/')}/{AWS_STORAGE_BUCKET_NAME}/"
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
