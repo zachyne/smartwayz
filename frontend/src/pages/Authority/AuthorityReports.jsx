@@ -89,7 +89,6 @@ const AuthorityReports = () => {
   };
 
   const mapReportForUI = (r) => {
-    // Status is already in correct format from API ("Pending", "In Progress", etc.)
     const displayStatus = r.status_name || "Pending";
     const imageUrls = extractImageUrls(r);
     const imageCount = typeof r.image_count === "number"
@@ -116,7 +115,7 @@ const AuthorityReports = () => {
   };
 
   const openReportDetails = useCallback(async (report) => {
-    // Open immediately, then hydrate with full detail payload
+    // Render the selected row immediately, then replace it with the detailed payload.
     setSelectedReport(report);
 
     try {
@@ -130,14 +129,12 @@ const AuthorityReports = () => {
     }
   }, []);
 
-  // Function to fetch all data (reports + stats)
+  // Load the report list and summary statistics together.
   const fetchAllData = async () => {
     try {
       setIsLoading(true);
 
-      // Fetch reports
       const reportsRes = await reportAPI.getAll();
-      console.log("RAW REPORTS RESPONSE:", reportsRes);
       
       let raw = [];
       if (Array.isArray(reportsRes)) {
@@ -148,32 +145,25 @@ const AuthorityReports = () => {
         raw = reportsRes.data;
       }
       
-      console.log("PARSED REPORTS:", raw);
-      
       if (raw.length > 0) {
         const mapped = raw.map(mapReportForUI);
-        console.log("MAPPED REPORTS:", mapped);
         setReports(mapped);
       } else {
         console.warn("No reports found in response");
         setReports([]);
       }
 
-      // Fetch stats
       let statsRes;
       try {
         statsRes = await reportAPI.getStats();
       } catch (statsErr) {
         console.error("Stats API error:", statsErr);
       }
-      
-      console.log("RAW STATS RESPONSE:", statsRes);
-      
+
       if (statsRes && statsRes.total_reports !== undefined) {
         setStatsData(statsRes);
       } else {
-        console.log("Using fallback: calculating stats from reports");
-        // Fallback: calculate stats from the reports we already fetched
+        // Fall back to client-side aggregation when the stats endpoint is unavailable.
         const pending = raw.filter(r => r.status_name?.toLowerCase() === "pending").length;
         const inProgress = raw.filter(r => r.status_name?.toLowerCase() === "in progress").length;
         const resolved = raw.filter(r => r.status_name?.toLowerCase() === "resolved").length;
@@ -203,10 +193,9 @@ const AuthorityReports = () => {
 
       await reportAPI.updateStatus(reportId, next.id);
 
-      // Refetch all data to update stats and reports live
+      // Refresh the list so the updated status is reflected consistently.
       await fetchAllData();
 
-      // Close modal after successful update
       setSelectedReport(null);
     } catch (err) {
       console.error("Failed to update status:", err);
@@ -214,7 +203,7 @@ const AuthorityReports = () => {
     }
   };
 
-  // Fetch both reports and stats on component mount
+  // Populate the page on first render.
   useEffect(() => {
     fetchAllData();
   }, []);

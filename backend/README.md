@@ -1,6 +1,6 @@
-# Smartwayz Backend
+# SmartWayz Backend
 
-Django REST API for the Smartwayz reporting system.
+Django REST API for the SmartWayz reporting platform.
 
 ## Prerequisites
 
@@ -17,13 +17,13 @@ docker compose build
 
 ### 2. Run Database Migrations
 
-This will create all database tables:
+This creates the required database tables:
 
 ```bash
 docker compose run --rm django-web python manage.py migrate
 ```
 
-**Note:** The migration automatically seeds the database with:
+The migration also seeds the database with:
 - 2 Categories (Hazard, Infrastructure)
 - 19 SubCategories (mapped to their respective categories)
 
@@ -41,7 +41,7 @@ docker compose up -d
 
 The API will be available at `http://localhost:8000`
 
-### 4. View Logs (if running in detached mode)
+### 4. View Logs
 
 ```bash
 docker compose logs -f django-web
@@ -75,7 +75,7 @@ docker compose down
 
 ## Database Access
 
-If you have a PostgreSQL database service, access it with:
+If a PostgreSQL service is available in the active compose configuration, access it with:
 
 ```bash
 docker compose exec db psql -U postgres -d smartwayzdb
@@ -83,13 +83,13 @@ docker compose exec db psql -U postgres -d smartwayzdb
 
 ## Verify Seeded Data
 
-Check that categories and subcategories were seeded correctly:
+Verify that categories and subcategories were seeded correctly:
 
 ```bash
 docker compose run --rm django-web python manage.py shell -c "from api.models import Category, SubCategory; print(f'Categories: {Category.objects.count()}'); print(f'SubCategories: {SubCategory.objects.count()}')"
 ```
 
-Expected output:
+Expected values:
 - Categories: 2
 - SubCategories: 19
 
@@ -100,7 +100,7 @@ Expected output:
 
 ### Quick API Test
 
-Test that the API is working:
+Confirm that the API is reachable:
 
 ```bash
 curl http://localhost:8000/api/
@@ -117,13 +117,13 @@ Expected response:
 }
 ```
 
-### Browse API in Browser
+### Browsable API
 
-Visit `http://localhost:8000/api/` in your web browser to access the Django REST Framework browsable API interface.
+Visit `http://localhost:8000/api/` to access the Django REST Framework browsable API.
 
 ## Supabase Media Storage
 
-To store report images in Supabase Storage instead of local `backend/media`, set these environment variables:
+To store report images in Supabase Storage instead of local `backend/media`, set the following environment variables:
 
 ```env
 USE_SUPABASE_STORAGE=True
@@ -135,7 +135,7 @@ SUPABASE_REGION=us-east-1
 SUPABASE_PUBLIC_MEDIA_URL=https://<project-ref>.supabase.co/storage/v1/object/public/<bucket>
 ```
 
-Then rebuild and run migrations:
+Rebuild the service and run migrations:
 
 ```bash
 docker compose build django-web
@@ -143,7 +143,7 @@ docker compose run --rm django-web python manage.py migrate
 docker compose up -d
 ```
 
-To migrate existing local files from `backend/media` to Supabase:
+To migrate existing local files from `backend/media` to Supabase Storage:
 
 ```bash
 docker compose run --rm django-web python manage.py migrate_media_to_storage
@@ -151,18 +151,17 @@ docker compose run --rm django-web python manage.py migrate_media_to_storage
 
 ## Security
 
-### Password Security ✅
+### Password Security
 
 Passwords are automatically hashed using Django's PBKDF2-SHA256 algorithm with 1,000,000 iterations. Passwords are never stored in plain text.
 
-### Password Confirmation ✅
+### Password Confirmation
 
 User registration requires password confirmation to prevent typos:
 - `password` and `confirm_password` fields required
 - Validation ensures both passwords match
 - Clear error message if passwords don't match
 
-For complete security documentation, see [SECURITY.md](./SECURITY.md)
+For additional security documentation, see [SECURITY.md](./SECURITY.md).
 
-**Note:** This application is configured for development. Additional security measures (authentication, authorization, HTTPS) are required before production deployment.
-
+This application is configured primarily for development. Review authentication, authorization, HTTPS, secret management, and deployment hardening before production use.

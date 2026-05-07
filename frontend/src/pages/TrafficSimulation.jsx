@@ -1,11 +1,11 @@
 import { useEffect, useRef, useState, useCallback, useMemo } from "react";
 import { Play, Pause, RotateCcw, Clock, Calendar, Car, Bike, Truck, Bus, AlertTriangle, Construction, PartyPopper, FileText, Layers, X, Settings, Navigation } from "lucide-react";
 
-// Import GeoJSON with turn movement geometries
+// Traffic movement geometries used to render lane flows on the map.
 import turnMovementsGeoJSON from "../assets/turn_movements.json";
 import trafficFlowCsvRaw from "../assets/traffic_flow.csv?raw";
 
-// Real traffic data loaded from CSV
+// Hourly traffic counts loaded from the source dataset.
 const CSV_HEADERS = [
   "timeFrom",
   "timeTo",
@@ -144,7 +144,7 @@ const getTodayDateInputValue = () => {
   return `${year}-${month}-${day}`;
 };
 
-// Build FLOW_LINES from GeoJSON - convert [lng, lat] to [lat, lng] for Leaflet
+// Leaflet expects coordinates in [lat, lng] order.
 const FLOW_LINES = {};
 const DIRECTION_COLORS = {
   "East to West (Straight)": "#3b82f6",
@@ -158,10 +158,9 @@ const DIRECTION_COLORS = {
   "South U-Turn": "#6b7280",
 };
 
-// Process GeoJSON features to build FLOW_LINES
+// Convert the source geometry into the structure consumed by the map layer.
 turnMovementsGeoJSON.features.forEach(feature => {
   const direction = feature.properties.direction;
-  // Convert GeoJSON coordinates [lng, lat] to Leaflet format [lat, lng]
   const coords = feature.geometry.coordinates.map(coord => [coord[1], coord[0]]);
 
   FLOW_LINES[direction] = {
@@ -171,7 +170,7 @@ turnMovementsGeoJSON.features.forEach(feature => {
   };
 });
 
-// Scenario configurations
+// Preset scenarios used to adjust the traffic model.
 const SCENARIOS = [
   { id: "normal", label: "Normal Day", icon: Calendar, description: "View actual recorded traffic data", multiplier: 1.0 },
   { id: "am_rush", label: "AM Rush Hour", icon: Clock, description: "Focus on morning peak (7-9 AM)", multiplier: 1.0, timeRange: [7, 9] },
@@ -182,7 +181,7 @@ const SCENARIOS = [
   { id: "policy", label: "Policy Changes", icon: FileText, description: "Simulated 15% traffic reduction", multiplier: 0.85 },
 ];
 
-// Vehicle types for display
+// Display metadata for the traffic summary widgets.
 const VEHICLE_TYPES = [
   { id: "motorcycle", label: "Motorcycle", icon: Bike, color: "#3b82f6" },
   { id: "tricycle", label: "Tricycle/Pedicab", icon: Navigation, color: "#22c55e" },
@@ -191,18 +190,18 @@ const VEHICLE_TYPES = [
   { id: "heavyTruck", label: "Heavy Truck/Bus", icon: Bus, color: "#ef4444" },
 ];
 
-// Direction options for filter (built from GeoJSON)
+// Direction filter options derived from the geometry dataset.
 const DIRECTION_OPTIONS = [
   { value: "all", label: "All Directions" },
   ...turnMovementsGeoJSON.features
-    .filter(f => !f.properties.direction.includes("U-Turn")) // Exclude U-turns from main filter
+    .filter(f => !f.properties.direction.includes("U-Turn"))
     .map(f => ({
       value: f.properties.direction,
       label: f.properties.direction
     }))
 ];
 
-// Traffic heatmap colors
+// Color scale for traffic density indicators.
 const CONGESTION_COLORS = {
   free: "#22c55e",
   light: "#84cc16",
@@ -218,18 +217,18 @@ const TrafficSimulation = () => {
   const animationRef = useRef(null);
   const flowAnimationRef = useRef(null);
 
-  // Simulation state
+  // Simulation state.
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentHour, setCurrentHour] = useState(8);
   const [selectedDate, setSelectedDate] = useState(getTodayDateInputValue);
   const [selectedScenario, setSelectedScenario] = useState("normal");
   const [selectedDirection, setSelectedDirection] = useState("all");
 
-  // Panel visibility for mobile
+  // Mobile panel visibility.
   const [showScenarios, setShowScenarios] = useState(false);
   const [showControls, setShowControls] = useState(false);
 
-  // Map center coordinates (Naval, Biliran - intersection from GeoJSON)
+  // Map center for the sampled intersection in Naval, Biliran.
   const MAP_CENTER = [11.5621528, 124.3943467];
   const DEFAULT_TIME_RANGE = [6, 19];
 
@@ -253,7 +252,7 @@ const TrafficSimulation = () => {
     setCurrentHour((prev) => Math.min(maxHour, Math.max(minHour, prev)));
   }, [minHour, maxHour]);
 
-  // Get traffic data for current hour and selected date (actual for Monday/Friday, predicted otherwise)
+  // Use observed Monday and Friday data directly, and interpolate for other days.
   const getCurrentTrafficData = useCallback(() => {
     const multiplier = activeScenario.multiplier || 1.0;
 
@@ -418,7 +417,7 @@ const TrafficSimulation = () => {
     return coords[coords.length - 1];
   }, []);
 
-  // Initialize map
+  // Initialize the Leaflet map once.
   useEffect(() => {
     if (map.current) return;
 
@@ -443,8 +442,7 @@ const TrafficSimulation = () => {
     }, 100);
 
     return () => {
-      // ⚠️ DO NOT remove the map here
-      // Only clear intervals
+      // Preserve the map instance during cleanup and only stop timers.
       if (flowAnimationRef.current) {
         clearInterval(flowAnimationRef.current);
         flowAnimationRef.current = null;
@@ -453,13 +451,13 @@ const TrafficSimulation = () => {
   }, []); 
 
 
-  // Update flow lines when data changes
+  // Rebuild the flow overlays when the input state changes.
   useEffect(() => {
     if (!map.current || !window.L) return;
 
     const L = window.L;
 
-    // Remove existing layers
+    // Clear any previously rendered overlays before redrawing.
     if (heatmapLayer.current) {
       map.current.removeLayer(heatmapLayer.current);
     }
@@ -468,14 +466,14 @@ const TrafficSimulation = () => {
       flowAnimationRef.current = null;
     }
 
-    // Create flow lines visualization
+    // Draw the current traffic state.
     const flowLines = createFlowLines();
     const linesGroup = L.layerGroup();
     const animatedDashLines = [];
     const particleMarkers = [];
 
     flowLines.forEach((flow) => {
-      // Glow underlay
+      // Render a wider line beneath the main path for contrast.
       L.polyline(flow.coords, {
         color: flow.color,
         weight: flow.weight + 6,

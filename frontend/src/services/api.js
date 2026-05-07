@@ -1,60 +1,46 @@
 /**
- * Legacy API service - Uses secure apiClient
- * 
- * NOTE: For new code, prefer using the useApi hook:
- * import { useApi } from '../hooks/useApi';
- * 
- * This file is kept for backward compatibility with existing code.
+ * Legacy API service built on top of `apiClient`.
+ *
+ * Prefer `useApi` for new React code. This module remains in place for
+ * existing consumers that still depend on the older service surface.
  */
 
 import { apiClient } from './apiClient';
 
-// Category API
 export const categoryAPI = {
-  // Get all categories
   getAll: async () => {
     const data = await apiClient.get('/categories/');
-    // Handle paginated response - return results array
     return data.results || data;
   },
 
-  // Get single category by ID
   getById: async (id) => {
     const data = await apiClient.get(`/categories/${id}/`);
     return data;
   },
 
-  // Get subcategories for a specific category
   getSubcategories: async (categoryId) => {
     const data = await apiClient.get(`/categories/${categoryId}/subcategories/`);
     return data;
   },
 };
 
-// SubCategory API
 export const subCategoryAPI = {
-  // Get all subcategories
   getAll: async () => {
     const data = await apiClient.get('/subcategories/');
-    // Handle paginated response - return results array
     return data.results || data;
   },
 
-  // Get subcategories filtered by category
   getByCategory: async (categoryId) => {
     const data = await apiClient.get(`/subcategories/?category=${categoryId}`);
-    // Handle paginated response - return results array
     return data.results || data;
   },
 
-  // Get single subcategory by ID
   getById: async (id) => {
     const data = await apiClient.get(`/subcategories/${id}/`);
     return data;
   },
 };
 
-// Report API
 export const reportAPI = {
   create: async (reportData) => {
     const data = await apiClient.post('/reports/', reportData);
@@ -94,5 +80,5 @@ export const reportAPI = {
   getStats: async () => {
     const { data } = await apiClient.get("/reports/stats/");
     return data;
-  },  
+  },
 };

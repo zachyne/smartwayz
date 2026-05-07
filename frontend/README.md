@@ -1,16 +1,47 @@
-# React + Vite
+# SmartWayz Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+This application provides the SmartWayz user interface for citizens and authorities. It is built with React and Vite.
 
-Currently, two official plugins are available:
+## Requirements
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- Node.js 18+
+- npm
 
-## React Compiler
+## Development
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+```bash
+cd frontend
+npm install
+npm run dev
+```
 
-## Expanding the ESLint configuration
+The Vite development server runs on `http://localhost:5173` unless overridden locally.
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+## Available Scripts
+
+- `npm run dev` starts the development server.
+- `npm run build` creates a production build.
+- `npm run preview` serves the production build locally.
+- `npm run lint` runs the ESLint configuration for the project.
+
+## Project Layout
+
+```text
+frontend/
+├── public/
+├── src/
+│   ├── components/
+│   ├── hooks/
+│   ├── layouts/
+│   ├── pages/
+│   ├── services/
+│   └── utils/
+├── package.json
+└── vite.config.js
+```
+
+## Notes
+
+- API connectivity is configured through `VITE_API_URL`.
+- Authentication and request helpers live under `src/services/` and `src/hooks/`.
+- Additional integration notes are documented in the Markdown guides within this directory.

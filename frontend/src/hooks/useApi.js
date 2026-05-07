@@ -1,10 +1,5 @@
 /**
- * Custom hook for making authenticated API calls
- * 
- * Usage:
- * const api = useApi();
- * const reports = await api.get('/reports/');
- * const newReport = await api.post('/reports/', { title: 'Test' });
+ * Hook that exposes authenticated API helpers for React components.
  */
 
 import { useAuth } from '../pages/AuthPages';
@@ -14,7 +9,7 @@ import { useEffect } from 'react';
 export const useApi = () => {
   const { accessToken, isAuthenticated } = useAuth();
 
-  // Sync access token with API client whenever it changes
+  // Keep the shared API client aligned with the current auth state.
   useEffect(() => {
     if (accessToken) {
       const refreshToken = localStorage.getItem('refresh_token');
@@ -23,9 +18,6 @@ export const useApi = () => {
   }, [accessToken]);
 
   return {
-    /**
-     * Make a GET request
-     */
     get: async (endpoint, options = {}) => {
       if (!isAuthenticated) {
         throw new Error('Not authenticated');
@@ -33,9 +25,6 @@ export const useApi = () => {
       return apiClient.get(endpoint, options);
     },
 
-    /**
-     * Make a POST request
-     */
     post: async (endpoint, data, options = {}) => {
       if (!isAuthenticated) {
         throw new Error('Not authenticated');
@@ -43,9 +32,6 @@ export const useApi = () => {
       return apiClient.post(endpoint, data, options);
     },
 
-    /**
-     * Make a PUT request
-     */
     put: async (endpoint, data, options = {}) => {
       if (!isAuthenticated) {
         throw new Error('Not authenticated');
@@ -53,9 +39,6 @@ export const useApi = () => {
       return apiClient.put(endpoint, data, options);
     },
 
-    /**
-     * Make a PATCH request
-     */
     patch: async (endpoint, data, options = {}) => {
       if (!isAuthenticated) {
         throw new Error('Not authenticated');
@@ -63,9 +46,6 @@ export const useApi = () => {
       return apiClient.patch(endpoint, data, options);
     },
 
-    /**
-     * Make a DELETE request
-     */
     delete: async (endpoint, options = {}) => {
       if (!isAuthenticated) {
         throw new Error('Not authenticated');
@@ -73,9 +53,6 @@ export const useApi = () => {
       return apiClient.delete(endpoint, options);
     },
 
-    /**
-     * Check if user is authenticated
-     */
     isAuthenticated,
   };
 };
